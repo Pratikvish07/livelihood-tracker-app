@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "SRSApp Prototype",
+    "slug": "srsapp-prototype",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {},
+    "web": {},
+    "plugins": [
+      "expo-asset"
+    ]
+  }
+}
