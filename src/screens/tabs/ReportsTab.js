@@ -48,6 +48,12 @@ function MemberHeader({ memberName, shgName }) {
 export default function ReportsTab({ user, flowPreset }) {
   const [flowType, setFlowType] = useState("Update Data");
   const [page, setPage] = useState(1);
+  useEffect(() => {
+    if (flowPreset === "Update Data" || flowPreset === "New Enrolment") {
+      setFlowType(flowPreset);
+      setPage(1);
+    }
+  }, [flowPreset]);
 
   const [shgForm, setShgForm] = useState({
     shgName: SHG_NAMES[0],
@@ -211,11 +217,6 @@ export default function ReportsTab({ user, flowPreset }) {
 
   const [shgImgIdx, setShgImgIdx] = useState(0);
   const [cboImgIdx, setCboImgIdx] = useState(0);
-
-  useEffect(() => {
-    if (!flowPreset) return;
-    setFlowType(flowPreset);
-  }, [flowPreset]);
 
   const shgImageName = useMemo(() => SHG_IMAGES[shgImgIdx], [shgImgIdx]);
   const cboImageName = useMemo(() => CBO_IMAGES[cboImgIdx], [cboImgIdx]);

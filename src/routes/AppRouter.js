@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Alert, SafeAreaView, ScrollView, View } from "react-native";
 import BottomNav from "../components/BottomNav";
-import DashboardHomeTab from "../screens/tabs/DashboardHomeTab";
-import LivelihoodTab from "../screens/tabs/LivelihoodTab";
+import DashboardHomeTab from "../screens/tabs/DashboardHomeTab.js";
 import LoanTab from "../screens/tabs/LoanTab";
 import ProfileTab from "../screens/tabs/ProfileTab";
 import ReportsTab from "../screens/tabs/ReportsTab";
@@ -28,6 +27,7 @@ export default function AppRouter() {
   const [step, setStep] = useState("splash");
   const [language, setLanguage] = useState("English");
   const [activeTab, setActiveTab] = useState("Home");
+  const [homeView, setHomeView] = useState("dashboard");
   const [reportsFlowPreset, setReportsFlowPreset] = useState("Update Data");
 
   const [loginForm, setLoginForm] = useState({
@@ -117,25 +117,6 @@ export default function AppRouter() {
     remarks: ""
   });
 
-  const [livelihood, setLivelihood] = useState({
-    type: "Farm",
-    fields: {
-      cropType: "",
-      landSize: "",
-      production: "",
-      income: "",
-      animalType: "",
-      quantity: "",
-      health: "",
-      pondSize: "",
-      fishType: "",
-      enterpriseType: "",
-      investment: "",
-      revenue: "",
-      profit: ""
-    }
-  });
-
   const [loan, setLoan] = useState({
     screen: "Add Loan",
     amount: "",
@@ -191,6 +172,7 @@ export default function AppRouter() {
       language
     });
 
+    setHomeView("dashboard");
     setStep("dashboard");
   };
 
@@ -262,6 +244,7 @@ export default function AppRouter() {
     });
 
     Alert.alert(t("CRP ID Created"), `${t("Generated CRP ID")}: ${generatedCrpId}`);
+    setHomeView("dashboard");
     setStep("dashboard");
   };
 
@@ -277,21 +260,29 @@ export default function AppRouter() {
   };
 
   const onOpenWorkingReport = () => {
+    setHomeView("workingReport");
     setActiveTab("Home");
   };
 
   const onOpenNewEnrolment = () => {
-    setReportsFlowPreset("New Enrolment");
-    setActiveTab("Reports");
+    setHomeView("newEnrolment");
+    setActiveTab("Home");
+  };
+
+  const onOpenShgMember = () => {
+    setHomeView("shgMember");
+    setActiveTab("Home");
+  };
+
+  const onOpenLhCboActivity = () => {
+    setHomeView("lhCboActivity");
+    setActiveTab("Home");
   };
 
   const onOpenUpdateData = () => {
+    setHomeView("dashboard");
     setReportsFlowPreset("Update Data");
     setActiveTab("Reports");
-  };
-
-  const onSaveLivelihood = () => {
-    Alert.alert(t("Saved"), `${t(livelihood.type)} ${t("activity saved.")}`);
   };
 
   const onSaveLoan = () => {
@@ -317,6 +308,7 @@ export default function AppRouter() {
 
   const onLogout = () => {
     setStep("login");
+    setHomeView("dashboard");
     setActiveTab("Home");
   };
 
@@ -355,17 +347,14 @@ export default function AppRouter() {
                 setWorkingReport={setWorkingReport}
                 onSubmitWorkingReport={onSubmitWorkingReport}
                 onOpenWorkingReport={onOpenWorkingReport}
+                onOpenShgMember={onOpenShgMember}
+                onOpenLhCboActivity={onOpenLhCboActivity}
                 onOpenNewEnrolment={onOpenNewEnrolment}
                 onOpenUpdateData={onOpenUpdateData}
                 alerts={alerts}
                 activities={activities}
-              />
-            ) : null}
-            {activeTab === "Home" ? (
-              <LivelihoodTab
-                livelihood={livelihood}
-                setLivelihood={setLivelihood}
-                onSave={onSaveLivelihood}
+                homeView={homeView}
+                onBackToDashboard={() => setHomeView("dashboard")}
               />
             ) : null}
             {activeTab === "SHG" ? (

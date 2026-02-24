@@ -1,7 +1,8 @@
 const LANGUAGE_CODE_MAP = {
   English: "en",
   Bengali: "bn",
-  Hindi: "hi"
+  Hindi: "hi",
+  Assamese: "as"
 };
 
 const DICTIONARY = {
@@ -48,6 +49,29 @@ const DICTIONARY = {
     Loading: "लोड हो रहा है",
     "SRS Livelihood App": "एसआरएस आजीविका ऐप",
     "Digital Livelihood Monitoring System": "डिजिटल आजीविका मॉनिटरिंग सिस्टम"
+  },
+  as: {
+    "Language Selection": "ভাষা নিৰ্বাচন",
+    "Choose your preferred language": "আপোনাৰ পছন্দৰ ভাষা বাছি লওক",
+    Continue: "আগবাঢ়ক",
+    English: "ইংৰাজী",
+    Bengali: "বাংলা",
+    Hindi: "হিন্দী",
+    Assamese: "অসমীয়া",
+    Home: "গৃহ",
+    SHG: "এছএইচজি",
+    Loan: "ঋণ",
+    Reports: "প্রতিবেদন",
+    Profile: "প্রোফাইল",
+    "Save & Next": "সংরক্ষণ কৰক আৰু আগবাঢ়ক",
+    Save: "সংরক্ষণ",
+    Back: "পিছলৈ যাওক",
+    "Log-In": "লগ-ইন",
+    "Sign-up": "নিবন্ধন",
+    Logout: "লগ-আউট",
+    Loading: "লোড হৈ আছে",
+    "SRS Livelihood App": "এছআৰএছ জীৱিকা এপ",
+    "Digital Livelihood Monitoring System": "ডিজিটেল জীৱিকা পর্যবেক্ষণ ব্যৱস্থা"
   }
 };
 
