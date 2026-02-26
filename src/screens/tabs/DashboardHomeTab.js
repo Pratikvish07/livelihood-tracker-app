@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Alert, Image, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { getCurrentLocation, calculateDistance } from "../../utils/geofence";
 
 function DropdownField({
@@ -38,6 +38,22 @@ function DropdownField({
         </View>
       ) : null}
     </View>
+  );
+}
+
+function CycleDropdown({ value, options, onChange, style }) {
+  return (
+    <Pressable
+      style={[flowStyles.ddBox, style]}
+      onPress={() => {
+        const currentIndex = options.indexOf(value);
+        const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % options.length : 0;
+        onChange(options[nextIndex]);
+      }}
+    >
+      <Text style={flowStyles.ddText}>{value}</Text>
+      <Text style={flowStyles.ddArrow}>v</Text>
+    </Pressable>
   );
 }
 
@@ -85,6 +101,97 @@ export default function DashboardHomeTab({
   const [uploadedImageName, setUploadedImageName] = useState("");
   const [uploadedImageDate, setUploadedImageDate] = useState("");
   const [uploadedImageUri, setUploadedImageUri] = useState("");
+  const [supportStage, setSupportStage] = useState("Present Support");
+  const [activityProfile, setActivityProfile] = useState({
+    activityName: "Farm Activity",
+    areaQuantity: "",
+    areaUnit: "Bigha",
+    activityMode: "Kharif",
+    seasonality: "Seasonal",
+    period: "3",
+    landType: "Plain",
+    productionName: "Crop",
+    productionQty: "",
+    productionUnit: "KG",
+    totalLivestock: "",
+    waterbodyArea: "",
+    waterbodyType: "Canal"
+  });
+  const [nonFarmEnterprise, setNonFarmEnterprise] = useState({
+    enterpriseName: "",
+    setupType: "Homebased",
+    enterpriseLevel: "Primary",
+    signboardMounted: "Yes",
+    totalEmployment: "",
+    marketLinked: "Local",
+    gstNo: "",
+    gstRenewalDate: "",
+    panNo: "",
+    panRenewalDate: "",
+    udhyamNo: "",
+    udhyamRenewalDate: "",
+    fssaiNo: "",
+    fssaiRenewalDate: "",
+    tinNo: "",
+    tinRenewalDate: ""
+  });
+  const [technicalSupportForm, setTechnicalSupportForm] = useState({
+    havingSkillTraining: "Yes",
+    skillTrade: "Goat Rearing",
+    skillDate: "",
+    skillThrough: "NGO",
+    havingEdpTraining: "No",
+    edpTrade: "Tailoring",
+    edpDate: "",
+    edpThrough: "Block Team",
+    trainingRequirement: "Yes",
+    trainingRequiredTrade: "Food Processing"
+  });
+  const [financialSupportForm, setFinancialSupportForm] = useState({
+    activityOfMember: "Goat Rearing",
+    financialSupportRequired: true,
+    loanCyclePreferred: "Cycle 1"
+  });
+  const [pastSupportForm, setPastSupportForm] = useState({
+    topActivity: "Goat Rearing",
+    topAmount: "",
+    topLoanThrough: "CIF",
+    bottomActivity: "Poultry",
+    bottomAmount: "",
+    bottomLoanThrough: "Bank Loan",
+    interestRate: "12",
+    repaymentCompleted: "",
+    transactionStatus: "Pending"
+  });
+  const [transactionDetailsForm, setTransactionDetailsForm] = useState({
+    presentMonthLoanRepaymentStatus: "",
+    paymentDetailsBy: "CIF",
+    paymentSlipName: "",
+    principalPaid: "",
+    interestPaid: "",
+    totalPaid: ""
+  });
+  const [investmentProfile, setInvestmentProfile] = useState({
+    totalInvestment: "",
+    loanFromShg: "",
+    loanFromBank: "",
+    individualFinancing: "",
+    ownContribution: "",
+    csr: "",
+    governmentGrant: "",
+    otherSource: ""
+  });
+  const [incomeProfile, setIncomeProfile] = useState({
+    totalIncomeLastYear: "",
+    presentMonthIncome: "",
+    futureProjection: "",
+    month1: "",
+    month2: "",
+    month3: "",
+    month4: "",
+    month5: "",
+    month6: ""
+  });
 
   const shgMemberRecordedLocation = useMemo(() => {
     const mapping = {
@@ -97,6 +204,21 @@ export default function DashboardHomeTab({
   }, [memberName]);
 
   const isWithin50Meters = distanceToMember !== null && distanceToMember <= 50;
+  const normalizedSubCategory =
+    subCategory === "Non-Farm" ? "NonFarm" : subCategory;
+  const statusBySubCategory = {
+    Farm: "lhStatusFarm",
+    NonFarm: "lhStatusNonFarm",
+    Livestock: "lhStatusLivestock",
+    Fishery: "lhStatusFishery"
+  };
+  const activityBySubCategory = {
+    Farm: "lhActivityFarm",
+    NonFarm: "lhActivityNonFarm",
+    Livestock: "lhActivityLivestock",
+    Fishery: "lhActivityFishery"
+  };
+  const currentStatusView = statusBySubCategory[normalizedSubCategory] || "lhStatusFarm";
 
   const checkRadiusDistance = async (silent = false) => {
     setIsDistanceLoading(true);
@@ -151,20 +273,15 @@ export default function DashboardHomeTab({
       );
       return;
     }
-    onOpenLhCboActivity();
+    if (normalizedSubCategory === "Farm") {
+      onOpenUpdateData("lhActivityFarm");
+      return;
+    }
+    onOpenLhCboActivity(currentStatusView);
   };
 
-  const handleLhCboSaveAndNext = async () => {
-    const meters = await checkRadiusDistance(false);
-    if (meters === null) {
-      Alert.alert("Location Required", "Enable location before proceeding.");
-      return;
-    }
-    if (meters > 50) {
-      Alert.alert("Outside 50m Radius", `You are ${meters}m away. Move within 50m to continue.`);
-      return;
-    }
-    onOpenUpdateData();
+  const handleProfileSave = (title) => {
+    Alert.alert("Saved", `${title} saved successfully.`);
   };
 
   const closeAllShgDropdowns = () => {
@@ -585,7 +702,841 @@ export default function DashboardHomeTab({
     );
   }
 
-  if (homeView === "lhCboActivity") {
+  if (
+    homeView === "lhStatusFarm" ||
+    homeView === "lhStatusNonFarm" ||
+    homeView === "lhStatusLivestock" ||
+    homeView === "lhStatusFishery"
+  ) {
+    const statusTitleMap = {
+      lhStatusFarm: "SHG Member Farm-based Activity Status",
+      lhStatusNonFarm: "SHG Member Non-Farm-based Activity Status",
+      lhStatusLivestock: "SHG Member Livestock-based Activity Status",
+      lhStatusFishery: "SHG Member Fishery-based Activity Status"
+    };
+    const statusToSubCategory = {
+      lhStatusFarm: "Farm",
+      lhStatusNonFarm: "NonFarm",
+      lhStatusLivestock: "Livestock",
+      lhStatusFishery: "Fishery"
+    };
+    const selectedSubCategory = statusToSubCategory[homeView] || "Farm";
+
+    return (
+      <View style={pageStyles.screen}>
+        <View style={pageStyles.frame}>
+          <View style={flowStyles.headerCard}>
+            <Text style={flowStyles.headerLine}>SHG Member Name: {memberName}</Text>
+            <Text style={flowStyles.headerLine}>SHG Name: {shgName}</Text>
+          </View>
+
+          <Text style={flowStyles.statusTitle}>{statusTitleMap[homeView]}</Text>
+
+          <Pressable
+            style={flowStyles.profileButton}
+            onPress={() => onOpenUpdateData(activityBySubCategory[selectedSubCategory])}
+          >
+            <Text style={flowStyles.profileButtonText}>Activity Profile</Text>
+          </Pressable>
+
+          <Pressable
+            style={flowStyles.profileButton}
+            onPress={() => onOpenUpdateData("lhInvestment")}
+          >
+            <Text style={flowStyles.profileButtonText}>Investment Profile</Text>
+          </Pressable>
+
+          <Pressable style={flowStyles.profileButton} onPress={() => onOpenUpdateData("lhIncome")}>
+            <Text style={flowStyles.profileButtonText}>Income Profile</Text>
+          </Pressable>
+
+          <View style={flowStyles.footerRow}>
+            <View
+              style={[
+                flowStyles.geoDot,
+                isWithin50Meters ? flowStyles.geoDotGreen : flowStyles.geoDotRed
+              ]}
+            />
+            <Pressable
+              style={flowStyles.primarySaveBtn}
+              onPress={() => onOpenUpdateData("technicalSupport")}
+            >
+              <Text style={flowStyles.primarySaveText}>Save</Text>
+            </Pressable>
+          </View>
+
+          <Pressable style={flowStyles.statusBackBtn} onPress={onOpenShgMember}>
+            <Text style={flowStyles.statusBackBtnText}>Back to Dashboard</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
+  if (homeView === "lhActivityFarm") {
+    const activityNameOptions = ["Farm Activity", "Vegetable Farming", "Integrated Farming"];
+    const unitAreaOptions = ["Bigha", "Acre", "Hectare"];
+    const typeOptions = ["Kharif", "Rabi", "Perennial"];
+    const seasonOptions = ["Seasonal", "Summer", "Winter", "Rainy"];
+    const landOptions = ["Plain", "Low Land", "Tila"];
+    const productionOptions = ["Crop", "Milk", "Craft", "Processed Food"];
+    const productionUnitOptions = ["KG", "Quintal", "Litre", "Unit"];
+
+    return (
+      <View style={pageStyles.screen}>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <View style={[pageStyles.frame, apStyles.frame]}>
+            <View style={apStyles.titleWrap}>
+              <Text style={apStyles.title}>Activity Profile</Text>
+            </View>
+            <Text style={apStyles.sectionType}>Farm</Text>
+
+            <View style={apStyles.row}>
+              <View style={apStyles.leftRow}>
+                <Text style={apStyles.label}>Name of the Activity:</Text>
+                <CycleDropdown
+                  value={activityProfile.activityName}
+                  options={activityNameOptions}
+                  style={apStyles.dropdown}
+                  onChange={(value) =>
+                    setActivityProfile((prev) => ({ ...prev, activityName: value }))
+                  }
+                />
+              </View>
+            </View>
+
+            <View style={apStyles.row}>
+              <View style={apStyles.leftRow}>
+                <Text style={apStyles.label}>Quantum of Area:</Text>
+                <TextInput
+                  style={apStyles.input}
+                  value={activityProfile.areaQuantity}
+                  onChangeText={(text) =>
+                    setActivityProfile((prev) => ({
+                      ...prev,
+                      areaQuantity: text.replace(/[^\d.]/g, "")
+                    }))
+                  }
+                  keyboardType="numeric"
+                  placeholder="Type"
+                  placeholderTextColor="#64748b"
+                />
+              </View>
+            </View>
+
+            <View style={apStyles.row}>
+              <View style={apStyles.leftRow}>
+                <Text style={apStyles.label}>Unit of Area:</Text>
+                <CycleDropdown
+                  value={activityProfile.areaUnit}
+                  options={unitAreaOptions}
+                  style={apStyles.dropdown}
+                  onChange={(value) => setActivityProfile((prev) => ({ ...prev, areaUnit: value }))}
+                />
+              </View>
+            </View>
+
+            <View style={apStyles.row}>
+              <View style={apStyles.leftRow}>
+                <Text style={apStyles.label}>Type of Activity:</Text>
+                <CycleDropdown
+                  value={activityProfile.activityMode}
+                  options={typeOptions}
+                  style={apStyles.dropdown}
+                  onChange={(value) =>
+                    setActivityProfile((prev) => ({ ...prev, activityMode: value }))
+                  }
+                />
+              </View>
+            </View>
+
+            <View style={apStyles.row}>
+              <View style={apStyles.leftRow}>
+                <Text style={apStyles.label}>Type of Seasonal:</Text>
+                <CycleDropdown
+                  value={activityProfile.seasonality}
+                  options={seasonOptions}
+                  style={apStyles.dropdown}
+                  onChange={(value) =>
+                    setActivityProfile((prev) => ({ ...prev, seasonality: value }))
+                  }
+                />
+              </View>
+            </View>
+
+            <View style={apStyles.row}>
+              <View style={apStyles.leftRow}>
+                <Text style={apStyles.label}>If Perennial:</Text>
+                <TextInput
+                  style={apStyles.input}
+                  value={activityProfile.period}
+                  onChangeText={(text) =>
+                    setActivityProfile((prev) => ({
+                      ...prev,
+                      period: text.replace(/\D/g, "")
+                    }))
+                  }
+                  keyboardType="numeric"
+                  placeholder="Type years"
+                  placeholderTextColor="#64748b"
+                />
+              </View>
+            </View>
+
+            <View style={apStyles.row}>
+              <View style={apStyles.leftRow}>
+                <Text style={apStyles.label}>Type of Land:</Text>
+                <CycleDropdown
+                  value={activityProfile.landType}
+                  options={landOptions}
+                  style={apStyles.dropdown}
+                  onChange={(value) => setActivityProfile((prev) => ({ ...prev, landType: value }))}
+                />
+              </View>
+            </View>
+
+            <View style={apStyles.actionRow}>
+              <Pressable
+                style={apStyles.actionBtn}
+                onPress={() => {
+                  handleProfileSave("Activity profile");
+                  onOpenUpdateData("lhStatusFarm");
+                }}
+              >
+                <Text style={apStyles.actionBtnText}>Save</Text>
+              </Pressable>
+              <Pressable
+                style={apStyles.actionBtn}
+                onPress={() => Alert.alert("Edit", "Modify values and press Save to proceed.")}
+              >
+                <Text style={apStyles.actionBtnText}>Edit</Text>
+              </Pressable>
+            </View>
+
+            <View style={apStyles.row}>
+              <View style={apStyles.leftRow}>
+                <Text style={apStyles.label}>Name of the production:</Text>
+                <CycleDropdown
+                  value={activityProfile.productionName}
+                  options={productionOptions}
+                  style={apStyles.dropdown}
+                  onChange={(value) =>
+                    setActivityProfile((prev) => ({ ...prev, productionName: value }))
+                  }
+                />
+              </View>
+            </View>
+
+            <View style={apStyles.row}>
+              <View style={apStyles.leftRow}>
+                <Text style={apStyles.label}>Production Quantity:</Text>
+                <TextInput
+                  style={apStyles.input}
+                  value={activityProfile.productionQty}
+                  onChangeText={(text) =>
+                    setActivityProfile((prev) => ({
+                      ...prev,
+                      productionQty: text.replace(/[^\d.]/g, "")
+                    }))
+                  }
+                  keyboardType="numeric"
+                  placeholder="Type"
+                  placeholderTextColor="#64748b"
+                />
+              </View>
+            </View>
+
+            <View style={apStyles.row}>
+              <View style={apStyles.leftRow}>
+                <Text style={apStyles.label}>Production Unit:</Text>
+                <CycleDropdown
+                  value={activityProfile.productionUnit}
+                  options={productionUnitOptions}
+                  style={apStyles.dropdown}
+                  onChange={(value) =>
+                    setActivityProfile((prev) => ({ ...prev, productionUnit: value }))
+                  }
+                />
+              </View>
+            </View>
+
+            <Pressable style={wrStyles.backBtn} onPress={() => onOpenUpdateData(currentStatusView)}>
+              <Text style={wrStyles.backBtnText}>Back to Status</Text>
+            </Pressable>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
+  if (homeView === "lhActivityNonFarm") {
+    const setupTypeOptions = ["Homebased", "Commercial"];
+    const yesNoOptions = ["Yes", "No"];
+    const marketLinkedOptions = ["Local", "Block", "District", "State", "National"];
+
+    return (
+      <View style={pageStyles.screen}>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <View style={[pageStyles.frame, nfStyles.frame]}>
+            <View style={nfStyles.titleWrap}>
+              <Text style={nfStyles.title}>Activity Profile</Text>
+            </View>
+
+            <View style={nfStyles.row}>
+              <Text style={nfStyles.label}>Enterprise Name:</Text>
+              <TextInput
+                style={nfStyles.input}
+                value={nonFarmEnterprise.enterpriseName}
+                onChangeText={(text) =>
+                  setNonFarmEnterprise((prev) => ({ ...prev, enterpriseName: text }))
+                }
+                placeholder="Type"
+                placeholderTextColor="#64748b"
+              />
+            </View>
+
+            <View style={nfStyles.row}>
+              <Text style={nfStyles.label}>Set-up Type:</Text>
+              <CycleDropdown
+                value={nonFarmEnterprise.setupType}
+                options={setupTypeOptions}
+                style={nfStyles.dropdown}
+                onChange={(value) =>
+                  setNonFarmEnterprise((prev) => ({ ...prev, setupType: value }))
+                }
+              />
+            </View>
+
+            <View style={nfStyles.row}>
+              <Text style={nfStyles.label}>Enterprise Level:</Text>
+              <View style={nfStyles.toggleWrap}>
+                <Pressable
+                  style={[
+                    nfStyles.toggleBtn,
+                    nonFarmEnterprise.enterpriseLevel === "Primary" && nfStyles.toggleBtnActive
+                  ]}
+                  onPress={() =>
+                    setNonFarmEnterprise((prev) => ({ ...prev, enterpriseLevel: "Primary" }))
+                  }
+                >
+                  <Text style={nfStyles.toggleText}>Primary</Text>
+                </Pressable>
+                <Pressable
+                  style={[
+                    nfStyles.toggleBtn,
+                    nonFarmEnterprise.enterpriseLevel === "Secondary" && nfStyles.toggleBtnActive
+                  ]}
+                  onPress={() =>
+                    setNonFarmEnterprise((prev) => ({ ...prev, enterpriseLevel: "Secondary" }))
+                  }
+                >
+                  <Text style={nfStyles.toggleText}>Secondary</Text>
+                </Pressable>
+              </View>
+            </View>
+
+            <View style={nfStyles.row}>
+              <Text style={nfStyles.label}>Signboard Mounted on Enterprise:</Text>
+              <CycleDropdown
+                value={nonFarmEnterprise.signboardMounted}
+                options={yesNoOptions}
+                style={nfStyles.dropdown}
+                onChange={(value) =>
+                  setNonFarmEnterprise((prev) => ({ ...prev, signboardMounted: value }))
+                }
+              />
+            </View>
+
+            <View style={nfStyles.row}>
+              <Text style={nfStyles.label}>Total Employment associated:</Text>
+              <TextInput
+                style={nfStyles.input}
+                value={nonFarmEnterprise.totalEmployment}
+                onChangeText={(text) =>
+                  setNonFarmEnterprise((prev) => ({
+                    ...prev,
+                    totalEmployment: text.replace(/\D/g, "")
+                  }))
+                }
+                keyboardType="numeric"
+                placeholder="Type"
+                placeholderTextColor="#64748b"
+              />
+            </View>
+
+            <View style={nfStyles.row}>
+              <Text style={nfStyles.label}>Market Linked:</Text>
+              <CycleDropdown
+                value={nonFarmEnterprise.marketLinked}
+                options={marketLinkedOptions}
+                style={nfStyles.dropdown}
+                onChange={(value) =>
+                  setNonFarmEnterprise((prev) => ({ ...prev, marketLinked: value }))
+                }
+              />
+            </View>
+
+            <View style={nfStyles.complianceHeader}>
+              <Text style={nfStyles.complianceTitle}>Legal Compliances</Text>
+            </View>
+
+            <View style={nfStyles.row}>
+              <Text style={nfStyles.label}>GST:</Text>
+              <TextInput
+                style={nfStyles.input}
+                value={nonFarmEnterprise.gstNo}
+                onChangeText={(text) =>
+                  setNonFarmEnterprise((prev) => ({ ...prev, gstNo: text.toUpperCase() }))
+                }
+                placeholder="Number"
+                placeholderTextColor="#64748b"
+              />
+            </View>
+            <View style={nfStyles.row}>
+              <Text style={nfStyles.label}>Renewal Date:</Text>
+              <TextInput
+                style={nfStyles.input}
+                value={nonFarmEnterprise.gstRenewalDate}
+                onChangeText={(text) =>
+                  setNonFarmEnterprise((prev) => ({ ...prev, gstRenewalDate: text }))
+                }
+                placeholder="DD-MM-YY"
+                placeholderTextColor="#64748b"
+              />
+            </View>
+
+            <View style={nfStyles.row}>
+              <Text style={nfStyles.label}>PAN:</Text>
+              <TextInput
+                style={nfStyles.input}
+                value={nonFarmEnterprise.panNo}
+                onChangeText={(text) =>
+                  setNonFarmEnterprise((prev) => ({ ...prev, panNo: text.toUpperCase() }))
+                }
+                placeholder="Number"
+                placeholderTextColor="#64748b"
+              />
+            </View>
+            <View style={nfStyles.row}>
+              <Text style={nfStyles.label}>Renewal Date:</Text>
+              <TextInput
+                style={nfStyles.input}
+                value={nonFarmEnterprise.panRenewalDate}
+                onChangeText={(text) =>
+                  setNonFarmEnterprise((prev) => ({ ...prev, panRenewalDate: text }))
+                }
+                placeholder="DD-MM-YY"
+                placeholderTextColor="#64748b"
+              />
+            </View>
+
+            <View style={nfStyles.row}>
+              <Text style={nfStyles.label}>Udhyam:</Text>
+              <TextInput
+                style={nfStyles.input}
+                value={nonFarmEnterprise.udhyamNo}
+                onChangeText={(text) =>
+                  setNonFarmEnterprise((prev) => ({ ...prev, udhyamNo: text.toUpperCase() }))
+                }
+                placeholder="Number"
+                placeholderTextColor="#64748b"
+              />
+            </View>
+            <View style={nfStyles.row}>
+              <Text style={nfStyles.label}>Renewal Date:</Text>
+              <TextInput
+                style={nfStyles.input}
+                value={nonFarmEnterprise.udhyamRenewalDate}
+                onChangeText={(text) =>
+                  setNonFarmEnterprise((prev) => ({ ...prev, udhyamRenewalDate: text }))
+                }
+                placeholder="DD-MM-YY"
+                placeholderTextColor="#64748b"
+              />
+            </View>
+
+            <View style={nfStyles.row}>
+              <Text style={nfStyles.label}>FSSAI:</Text>
+              <TextInput
+                style={nfStyles.input}
+                value={nonFarmEnterprise.fssaiNo}
+                onChangeText={(text) =>
+                  setNonFarmEnterprise((prev) => ({ ...prev, fssaiNo: text.toUpperCase() }))
+                }
+                placeholder="Number"
+                placeholderTextColor="#64748b"
+              />
+            </View>
+            <View style={nfStyles.row}>
+              <Text style={nfStyles.label}>Renewal Date:</Text>
+              <TextInput
+                style={nfStyles.input}
+                value={nonFarmEnterprise.fssaiRenewalDate}
+                onChangeText={(text) =>
+                  setNonFarmEnterprise((prev) => ({ ...prev, fssaiRenewalDate: text }))
+                }
+                placeholder="DD-MM-YY"
+                placeholderTextColor="#64748b"
+              />
+            </View>
+
+            <View style={nfStyles.row}>
+              <Text style={nfStyles.label}>TIN:</Text>
+              <TextInput
+                style={nfStyles.input}
+                value={nonFarmEnterprise.tinNo}
+                onChangeText={(text) =>
+                  setNonFarmEnterprise((prev) => ({ ...prev, tinNo: text.toUpperCase() }))
+                }
+                placeholder="Number"
+                placeholderTextColor="#64748b"
+              />
+            </View>
+            <View style={nfStyles.row}>
+              <Text style={nfStyles.label}>Renewal Date:</Text>
+              <TextInput
+                style={nfStyles.input}
+                value={nonFarmEnterprise.tinRenewalDate}
+                onChangeText={(text) =>
+                  setNonFarmEnterprise((prev) => ({ ...prev, tinRenewalDate: text }))
+                }
+                placeholder="DD-MM-YY"
+                placeholderTextColor="#64748b"
+              />
+            </View>
+
+            <Pressable
+              style={nfStyles.saveBtn}
+              onPress={() => {
+                handleProfileSave("Non-Farm enterprise profile");
+                onOpenUpdateData(currentStatusView);
+              }}
+            >
+              <Text style={nfStyles.saveBtnText}>Save</Text>
+            </Pressable>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
+  if (homeView === "lhActivityLivestock") {
+    const activityNameOptions = ["Goat Rearing", "Poultry", "Dairy"];
+    const productionOptions = ["Milk", "Egg", "Meat"];
+    const productionUnitOptions = ["Litre", "KG", "Quintal", "Nos"];
+
+    return (
+      <View style={pageStyles.screen}>
+        <View style={pageStyles.frame}>
+          <Text style={flowStyles.formTitle}>Activity Profile - Livestock</Text>
+          <View style={flowStyles.formRow}>
+            <Text style={flowStyles.formLabel}>Name of the Activity:</Text>
+            <CycleDropdown
+              value={activityProfile.activityName}
+              options={activityNameOptions}
+              onChange={(value) => setActivityProfile((prev) => ({ ...prev, activityName: value }))}
+            />
+          </View>
+          <View style={flowStyles.formRow}>
+            <Text style={flowStyles.formLabel}>Total Number of Livestock:</Text>
+            <TextInput
+              style={flowStyles.input}
+              value={activityProfile.totalLivestock}
+              onChangeText={(text) =>
+                setActivityProfile((prev) => ({ ...prev, totalLivestock: text.replace(/\D/g, "") }))
+              }
+              keyboardType="numeric"
+              placeholder="0"
+              placeholderTextColor="#64748b"
+            />
+          </View>
+          <View style={flowStyles.formRow}>
+            <Text style={flowStyles.formLabel}>Name of Production:</Text>
+            <CycleDropdown
+              value={activityProfile.productionName}
+              options={productionOptions}
+              onChange={(value) =>
+                setActivityProfile((prev) => ({ ...prev, productionName: value }))
+              }
+            />
+          </View>
+          <View style={flowStyles.formRow}>
+            <Text style={flowStyles.formLabel}>Production Quantity:</Text>
+            <TextInput
+              style={flowStyles.input}
+              value={activityProfile.productionQty}
+              onChangeText={(text) =>
+                setActivityProfile((prev) => ({
+                  ...prev,
+                  productionQty: text.replace(/[^\d.]/g, "")
+                }))
+              }
+              keyboardType="numeric"
+              placeholder="0"
+              placeholderTextColor="#64748b"
+            />
+          </View>
+          <View style={flowStyles.formRow}>
+            <Text style={flowStyles.formLabel}>Production Unit:</Text>
+            <CycleDropdown
+              value={activityProfile.productionUnit}
+              options={productionUnitOptions}
+              onChange={(value) =>
+                setActivityProfile((prev) => ({ ...prev, productionUnit: value }))
+              }
+            />
+          </View>
+          <Pressable style={flowStyles.primarySaveBtn} onPress={() => handleProfileSave("Livestock activity profile")}>
+            <Text style={flowStyles.primarySaveText}>Save</Text>
+          </Pressable>
+          <Pressable style={wrStyles.backBtn} onPress={() => onOpenUpdateData("lhStatusLivestock")}>
+            <Text style={wrStyles.backBtnText}>Back to Status</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
+  if (homeView === "lhActivityFishery") {
+    const activityNameOptions = ["Fishery", "Pond Culture", "Canal Fishery"];
+    const areaTypeOptions = ["Kani", "Gonda", "Bigha"];
+    const waterbodyTypeOptions = ["Seasonal", "Perennial", "Canal", "Pond"];
+    const productionOptions = ["Fish", "Seed"];
+    const productionUnitOptions = ["KG", "Quintal"];
+
+    return (
+      <View style={pageStyles.screen}>
+        <View style={pageStyles.frame}>
+          <Text style={flowStyles.formTitle}>Activity Profile - Fishery</Text>
+          <View style={flowStyles.formRow}>
+            <Text style={flowStyles.formLabel}>Name of the Activity:</Text>
+            <CycleDropdown
+              value={activityProfile.activityName}
+              options={activityNameOptions}
+              onChange={(value) => setActivityProfile((prev) => ({ ...prev, activityName: value }))}
+            />
+          </View>
+          <View style={flowStyles.formRow}>
+            <Text style={flowStyles.formLabel}>Total Waterbody Area:</Text>
+            <TextInput
+              style={flowStyles.input}
+              value={activityProfile.waterbodyArea}
+              onChangeText={(text) =>
+                setActivityProfile((prev) => ({
+                  ...prev,
+                  waterbodyArea: text.replace(/[^\d.]/g, "")
+                }))
+              }
+              keyboardType="numeric"
+              placeholder="0"
+              placeholderTextColor="#64748b"
+            />
+          </View>
+          <View style={flowStyles.formRow}>
+            <Text style={flowStyles.formLabel}>Unit of Area:</Text>
+            <CycleDropdown
+              value={activityProfile.areaUnit}
+              options={areaTypeOptions}
+              onChange={(value) => setActivityProfile((prev) => ({ ...prev, areaUnit: value }))}
+            />
+          </View>
+          <View style={flowStyles.formRow}>
+            <Text style={flowStyles.formLabel}>Type of Activity:</Text>
+            <CycleDropdown
+              value={activityProfile.activityMode}
+              options={["Rabi", "Kharif", "Summer", "Winter", "Rainy"]}
+              onChange={(value) =>
+                setActivityProfile((prev) => ({ ...prev, activityMode: value }))
+              }
+            />
+          </View>
+          <View style={flowStyles.formRow}>
+            <Text style={flowStyles.formLabel}>Type of Waterbody:</Text>
+            <CycleDropdown
+              value={activityProfile.waterbodyType}
+              options={waterbodyTypeOptions}
+              onChange={(value) =>
+                setActivityProfile((prev) => ({ ...prev, waterbodyType: value }))
+              }
+            />
+          </View>
+          <View style={flowStyles.formRow}>
+            <Text style={flowStyles.formLabel}>Name of Production:</Text>
+            <CycleDropdown
+              value={activityProfile.productionName}
+              options={productionOptions}
+              onChange={(value) =>
+                setActivityProfile((prev) => ({ ...prev, productionName: value }))
+              }
+            />
+          </View>
+          <View style={flowStyles.formRow}>
+            <Text style={flowStyles.formLabel}>Production Quantity:</Text>
+            <TextInput
+              style={flowStyles.input}
+              value={activityProfile.productionQty}
+              onChangeText={(text) =>
+                setActivityProfile((prev) => ({
+                  ...prev,
+                  productionQty: text.replace(/[^\d.]/g, "")
+                }))
+              }
+              keyboardType="numeric"
+              placeholder="0"
+              placeholderTextColor="#64748b"
+            />
+          </View>
+          <View style={flowStyles.formRow}>
+            <Text style={flowStyles.formLabel}>Production Unit:</Text>
+            <CycleDropdown
+              value={activityProfile.productionUnit}
+              options={productionUnitOptions}
+              onChange={(value) =>
+                setActivityProfile((prev) => ({ ...prev, productionUnit: value }))
+              }
+            />
+          </View>
+          <Pressable style={flowStyles.primarySaveBtn} onPress={() => handleProfileSave("Fishery activity profile")}>
+            <Text style={flowStyles.primarySaveText}>Save</Text>
+          </Pressable>
+          <Pressable style={wrStyles.backBtn} onPress={() => onOpenUpdateData("lhStatusFishery")}>
+            <Text style={wrStyles.backBtnText}>Back to Status</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
+  if (homeView === "lhInvestment") {
+    const numericFields = [
+      { key: "totalInvestment", label: "Total Investment" },
+      { key: "loanFromShg", label: "Loan from SHG" },
+      { key: "loanFromBank", label: "Loan from Bank" },
+      { key: "individualFinancing", label: "Individual Financing" },
+      { key: "ownContribution", label: "Own Contribution" },
+      { key: "csr", label: "CSR" },
+      { key: "governmentGrant", label: "Government Grant" },
+      { key: "otherSource", label: "Other Source" }
+    ];
+
+    return (
+      <View style={pageStyles.screen}>
+        <View style={pageStyles.frame}>
+          <Text style={flowStyles.formTitle}>Investment Profile</Text>
+          {numericFields.map((item) => (
+            <View style={flowStyles.formRow} key={item.key}>
+              <Text style={flowStyles.formLabel}>{item.label}:</Text>
+              <TextInput
+                style={flowStyles.input}
+                value={investmentProfile[item.key]}
+                onChangeText={(text) =>
+                  setInvestmentProfile((prev) => ({
+                    ...prev,
+                    [item.key]: text.replace(/[^\d.]/g, "")
+                  }))
+                }
+                keyboardType="numeric"
+                placeholder="0"
+                placeholderTextColor="#64748b"
+              />
+            </View>
+          ))}
+          <Pressable style={flowStyles.primarySaveBtn} onPress={() => handleProfileSave("Investment profile")}>
+            <Text style={flowStyles.primarySaveText}>Save</Text>
+          </Pressable>
+          <Pressable style={wrStyles.backBtn} onPress={() => onOpenUpdateData(currentStatusView)}>
+            <Text style={wrStyles.backBtnText}>Back to Status</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
+  if (homeView === "lhIncome") {
+    const monthRows = ["month1", "month2", "month3", "month4", "month5", "month6"];
+
+    return (
+      <View style={pageStyles.screen}>
+        <View style={pageStyles.frame}>
+          <Text style={flowStyles.formTitle}>Income Profile</Text>
+          <View style={flowStyles.formRow}>
+            <Text style={flowStyles.formLabel}>Total Income Since last year:</Text>
+            <TextInput
+              style={flowStyles.input}
+              value={incomeProfile.totalIncomeLastYear}
+              onChangeText={(text) =>
+                setIncomeProfile((prev) => ({
+                  ...prev,
+                  totalIncomeLastYear: text.replace(/[^\d.]/g, "")
+                }))
+              }
+              keyboardType="numeric"
+              placeholder="0"
+              placeholderTextColor="#64748b"
+            />
+          </View>
+          <View style={flowStyles.formRow}>
+            <Text style={flowStyles.formLabel}>Present Month Income:</Text>
+            <TextInput
+              style={flowStyles.input}
+              value={incomeProfile.presentMonthIncome}
+              onChangeText={(text) =>
+                setIncomeProfile((prev) => ({
+                  ...prev,
+                  presentMonthIncome: text.replace(/[^\d.]/g, "")
+                }))
+              }
+              keyboardType="numeric"
+              placeholder="0"
+              placeholderTextColor="#64748b"
+            />
+          </View>
+          <View style={flowStyles.formRow}>
+            <Text style={flowStyles.formLabel}>Future Projection (Next Six Month):</Text>
+            <TextInput
+              style={flowStyles.input}
+              value={incomeProfile.futureProjection}
+              onChangeText={(text) =>
+                setIncomeProfile((prev) => ({
+                  ...prev,
+                  futureProjection: text.replace(/[^\d.]/g, "")
+                }))
+              }
+              keyboardType="numeric"
+              placeholder="0"
+              placeholderTextColor="#64748b"
+            />
+          </View>
+          {monthRows.map((monthKey, index) => (
+            <View style={flowStyles.formRow} key={monthKey}>
+              <Text style={flowStyles.formLabel}>Month {index + 1} Actual Income:</Text>
+              <TextInput
+                style={flowStyles.input}
+                value={incomeProfile[monthKey]}
+                onChangeText={(text) =>
+                  setIncomeProfile((prev) => ({
+                    ...prev,
+                    [monthKey]: text.replace(/[^\d.]/g, "")
+                  }))
+                }
+                keyboardType="numeric"
+                placeholder="0"
+                placeholderTextColor="#64748b"
+              />
+            </View>
+          ))}
+          <Pressable style={flowStyles.primarySaveBtn} onPress={() => handleProfileSave("Income profile")}>
+            <Text style={flowStyles.primarySaveText}>Save</Text>
+          </Pressable>
+          <Pressable style={wrStyles.backBtn} onPress={() => onOpenUpdateData(currentStatusView)}>
+            <Text style={wrStyles.backBtnText}>Back to Status</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
+  if (false && homeView === "lhCboActivity") {
     const isProducer = activityType === "Goat Rearing";
     const isNonFarm = activityType === "Tailoring";
     const isIntegrated = activityType === "Vegetable Farming";
@@ -652,6 +1603,615 @@ export default function DashboardHomeTab({
             <Text style={wrStyles.backBtnText}>Back to SHG Member</Text>
           </Pressable>
         </View>
+      </View>
+    );
+  }
+
+  if (homeView === "technicalSupport") {
+    return (
+      <View style={pageStyles.screen}>
+        <View style={[pageStyles.frame, tsCardStyles.frame]}>
+          <View style={tsCardStyles.headerCard}>
+            <Text style={tsCardStyles.headerLine}>SHG Member Name: {memberName || "xxxxxxxxxx xxxx"}</Text>
+            <Text style={tsCardStyles.headerLine}>SHG Name: {shgName || "xxxxxxxxxx SHG"}</Text>
+          </View>
+
+          <Pressable
+            style={tsCardStyles.mainButton}
+            onPress={() => onOpenUpdateData("technicalSupportTech")}
+          >
+            <Text style={tsCardStyles.mainButtonText}>Technical Support{"\n"}Details</Text>
+          </Pressable>
+          <Pressable
+            style={tsCardStyles.mainButton}
+            onPress={() => onOpenUpdateData("technicalSupportFinancial")}
+          >
+            <Text style={tsCardStyles.mainButtonText}>Financial Support{"\n"}Details</Text>
+          </Pressable>
+
+          <View style={tsCardStyles.segmentRow}>
+            {["Past Supports", "Present Support", "Support Required"].map((item) => (
+              <Pressable
+                key={item}
+                style={[
+                  tsCardStyles.segmentBtn,
+                  supportStage === item && tsCardStyles.segmentBtnActive
+                ]}
+                onPress={() => {
+                  setSupportStage(item);
+                  if (item === "Past Supports") {
+                    onOpenUpdateData("technicalSupportPast");
+                    return;
+                  }
+                  onOpenUpdateData("technicalSupportFinancial");
+                }}
+              >
+                <Text style={tsCardStyles.segmentBtnText}>
+                  {item === "Past Supports"
+                    ? "Past\nSupports"
+                    : item === "Present Support"
+                      ? "Present\nSupport"
+                      : "Support\nRequired"}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+
+          <View style={tsCardStyles.footerRow}>
+            <View
+              style={[
+                tsCardStyles.geoDot,
+                isWithin50Meters ? tsCardStyles.geoDotGreen : tsCardStyles.geoDotRed
+              ]}
+            />
+            <Pressable
+              style={tsCardStyles.saveBtn}
+              onPress={() => {
+                Alert.alert("Saved", "Technical support details saved.");
+                onOpenShgMember();
+              }}
+            >
+              <Text style={tsCardStyles.saveBtnText}>Save</Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  if (homeView === "technicalSupportTech") {
+    const yesNoOptions = ["Yes", "No"];
+    const tradeOptions = ["Goat Rearing", "Poultry", "Tailoring", "Food Processing"];
+    const throughOptions = ["NGO", "Block Team", "District Team", "CRP Team"];
+
+    return (
+      <View style={pageStyles.screen}>
+        <View style={[pageStyles.frame, tsDetailStyles.frame]}>
+          <View style={tsDetailStyles.row}>
+            <Text style={tsDetailStyles.label}>Having Skill Training:</Text>
+            <CycleDropdown
+              value={technicalSupportForm.havingSkillTraining}
+              options={yesNoOptions}
+              style={tsDetailStyles.dropdown}
+              onChange={(value) =>
+                setTechnicalSupportForm((prev) => ({ ...prev, havingSkillTraining: value }))
+              }
+            />
+          </View>
+          <View style={tsDetailStyles.row}>
+            <Text style={tsDetailStyles.label}>If Yes, Name of the Trade:</Text>
+            <CycleDropdown
+              value={technicalSupportForm.skillTrade}
+              options={tradeOptions}
+              style={tsDetailStyles.dropdown}
+              onChange={(value) =>
+                setTechnicalSupportForm((prev) => ({ ...prev, skillTrade: value }))
+              }
+            />
+          </View>
+          <View style={tsDetailStyles.row}>
+            <Text style={tsDetailStyles.label}>Date of Training:</Text>
+            <TextInput
+              style={tsDetailStyles.input}
+              value={technicalSupportForm.skillDate}
+              onChangeText={(text) =>
+                setTechnicalSupportForm((prev) => ({ ...prev, skillDate: text }))
+              }
+              placeholder="DD-MM-YY"
+              placeholderTextColor="#64748b"
+            />
+          </View>
+          <View style={tsDetailStyles.row}>
+            <Text style={tsDetailStyles.label}>Training Executed Through:</Text>
+            <CycleDropdown
+              value={technicalSupportForm.skillThrough}
+              options={throughOptions}
+              style={tsDetailStyles.dropdown}
+              onChange={(value) =>
+                setTechnicalSupportForm((prev) => ({ ...prev, skillThrough: value }))
+              }
+            />
+          </View>
+
+          <View style={tsDetailStyles.divider} />
+
+          <View style={tsDetailStyles.row}>
+            <Text style={tsDetailStyles.label}>Having EDP Training:</Text>
+            <CycleDropdown
+              value={technicalSupportForm.havingEdpTraining}
+              options={yesNoOptions}
+              style={tsDetailStyles.dropdown}
+              onChange={(value) =>
+                setTechnicalSupportForm((prev) => ({ ...prev, havingEdpTraining: value }))
+              }
+            />
+          </View>
+          <View style={tsDetailStyles.row}>
+            <Text style={tsDetailStyles.label}>If Yes, Name of the Trade:</Text>
+            <CycleDropdown
+              value={technicalSupportForm.edpTrade}
+              options={tradeOptions}
+              style={tsDetailStyles.dropdown}
+              onChange={(value) =>
+                setTechnicalSupportForm((prev) => ({ ...prev, edpTrade: value }))
+              }
+            />
+          </View>
+          <View style={tsDetailStyles.row}>
+            <Text style={tsDetailStyles.label}>Date of Training:</Text>
+            <TextInput
+              style={tsDetailStyles.input}
+              value={technicalSupportForm.edpDate}
+              onChangeText={(text) =>
+                setTechnicalSupportForm((prev) => ({ ...prev, edpDate: text }))
+              }
+              placeholder="DD-MM-YY"
+              placeholderTextColor="#64748b"
+            />
+          </View>
+          <View style={tsDetailStyles.row}>
+            <Text style={tsDetailStyles.label}>Training Executed Through:</Text>
+            <CycleDropdown
+              value={technicalSupportForm.edpThrough}
+              options={throughOptions}
+              style={tsDetailStyles.dropdown}
+              onChange={(value) =>
+                setTechnicalSupportForm((prev) => ({ ...prev, edpThrough: value }))
+              }
+            />
+          </View>
+
+          <View style={tsDetailStyles.divider} />
+
+          <View style={tsDetailStyles.row}>
+            <Text style={tsDetailStyles.label}>Training Requirement:</Text>
+            <CycleDropdown
+              value={technicalSupportForm.trainingRequirement}
+              options={yesNoOptions}
+              style={tsDetailStyles.dropdown}
+              onChange={(value) =>
+                setTechnicalSupportForm((prev) => ({ ...prev, trainingRequirement: value }))
+              }
+            />
+          </View>
+          <View style={tsDetailStyles.row}>
+            <Text style={tsDetailStyles.label}>Training Required Trade:</Text>
+            <CycleDropdown
+              value={technicalSupportForm.trainingRequiredTrade}
+              options={tradeOptions}
+              style={tsDetailStyles.dropdown}
+              onChange={(value) =>
+                setTechnicalSupportForm((prev) => ({ ...prev, trainingRequiredTrade: value }))
+              }
+            />
+          </View>
+
+          <Pressable
+            style={tsDetailStyles.saveBtn}
+            onPress={() => {
+              Alert.alert("Saved", "Technical support details saved.");
+              onOpenUpdateData("technicalSupport");
+            }}
+          >
+            <Text style={tsDetailStyles.saveBtnText}>Save</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
+  if (homeView === "technicalSupportFinancial") {
+    const activityOptions = ["Goat Rearing", "Poultry", "Tailoring", "Fishery"];
+    const loanCycleOptions = ["Cycle 1", "Cycle 2", "Cycle 3"];
+
+    return (
+      <View style={pageStyles.screen}>
+        <View style={[pageStyles.frame, fsStyles.frame]}>
+          <View style={fsStyles.row}>
+            <Text style={fsStyles.label}>Activity of the Member:</Text>
+            <CycleDropdown
+              value={financialSupportForm.activityOfMember}
+              options={activityOptions}
+              style={fsStyles.dropdown}
+              onChange={(value) =>
+                setFinancialSupportForm((prev) => ({ ...prev, activityOfMember: value }))
+              }
+            />
+          </View>
+
+          <View style={fsStyles.row}>
+            <Text style={fsStyles.label}>Financial Support Required:</Text>
+            <Pressable
+              style={fsStyles.toggleWrap}
+              onPress={() =>
+                setFinancialSupportForm((prev) => ({
+                  ...prev,
+                  financialSupportRequired: !prev.financialSupportRequired
+                }))
+              }
+            >
+              <View
+                style={[
+                  fsStyles.toggleDot,
+                  financialSupportForm.financialSupportRequired
+                    ? fsStyles.toggleDotOn
+                    : fsStyles.toggleDotOff
+                ]}
+              />
+              <Text style={fsStyles.toggleText}>
+                {financialSupportForm.financialSupportRequired ? "Yes" : "No"}
+              </Text>
+            </Pressable>
+          </View>
+
+          <View style={fsStyles.row}>
+            <Text style={fsStyles.label}>Loan Cycle of Support Preferred:</Text>
+            <CycleDropdown
+              value={financialSupportForm.loanCyclePreferred}
+              options={loanCycleOptions}
+              style={fsStyles.dropdown}
+              onChange={(value) =>
+                setFinancialSupportForm((prev) => ({ ...prev, loanCyclePreferred: value }))
+              }
+            />
+          </View>
+
+          <View style={fsStyles.bottomRow}>
+            <Pressable
+              style={fsStyles.popupBtn}
+              onPress={() =>
+                Alert.alert(
+                  "Pop-Up Loan Cycle",
+                  `${financialSupportForm.loanCyclePreferred} for ${financialSupportForm.activityOfMember}`
+                )
+              }
+            >
+              <Text style={fsStyles.popupBtnText}>Pop-Up{"\n"}Loan{"\n"}Cycle</Text>
+            </Pressable>
+            <Pressable
+              style={fsStyles.saveBtn}
+              onPress={() => {
+                Alert.alert("Saved", "Financial support details saved.");
+                onOpenUpdateData("technicalSupport");
+              }}
+            >
+              <Text style={fsStyles.saveBtnText}>Save</Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  if (homeView === "technicalSupportPast") {
+    const activityOptions = ["Goat Rearing", "Poultry", "Tailoring", "Fishery"];
+    const sourceOptions = ["CIF", "RF", "Bank Loan", "PMFME"];
+    const rateOptions = ["8", "10", "12", "14"];
+    const statusOptions = ["Pending", "Completed"];
+    const topBalance = Math.max(
+      (Number(pastSupportForm.topAmount) || 0) - (Number(pastSupportForm.repaymentCompleted) || 0),
+      0
+    );
+
+    return (
+      <View style={pageStyles.screen}>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <View style={[pageStyles.frame, pastStyles.frame]}>
+            <View style={pastStyles.section}>
+              <View style={pastStyles.row}>
+                <Text style={pastStyles.label}>Financial Support Taken on LH Activity:</Text>
+                <CycleDropdown
+                  value={pastSupportForm.topActivity}
+                  options={activityOptions}
+                  style={pastStyles.dropdown}
+                  onChange={(value) => setPastSupportForm((prev) => ({ ...prev, topActivity: value }))}
+                />
+              </View>
+              <View style={pastStyles.row}>
+                <Text style={pastStyles.label}>Amount of Loan Taken:</Text>
+                <TextInput
+                  style={pastStyles.input}
+                  value={pastSupportForm.topAmount}
+                  onChangeText={(text) =>
+                    setPastSupportForm((prev) => ({ ...prev, topAmount: text.replace(/[^\d.]/g, "") }))
+                  }
+                  keyboardType="numeric"
+                  placeholder="0"
+                  placeholderTextColor="#64748b"
+                />
+              </View>
+              <View style={pastStyles.row}>
+                <Text style={pastStyles.label}>SHG Loan taken through:</Text>
+                <CycleDropdown
+                  value={pastSupportForm.topLoanThrough}
+                  options={sourceOptions}
+                  style={pastStyles.dropdown}
+                  onChange={(value) =>
+                    setPastSupportForm((prev) => ({ ...prev, topLoanThrough: value }))
+                  }
+                />
+              </View>
+              <Pressable style={pastStyles.saveBtn}>
+                <Text style={pastStyles.saveBtnText}>Save</Text>
+              </Pressable>
+            </View>
+
+            <View style={pastStyles.section}>
+              <View style={pastStyles.row}>
+                <Text style={pastStyles.label}>Financial Support Taken on LH Activity:</Text>
+                <CycleDropdown
+                  value={pastSupportForm.bottomActivity}
+                  options={activityOptions}
+                  style={pastStyles.dropdown}
+                  onChange={(value) =>
+                    setPastSupportForm((prev) => ({ ...prev, bottomActivity: value }))
+                  }
+                />
+              </View>
+              <View style={pastStyles.row}>
+                <Text style={pastStyles.label}>Amount of Loan Taken:</Text>
+                <TextInput
+                  style={pastStyles.input}
+                  value={pastSupportForm.bottomAmount}
+                  onChangeText={(text) =>
+                    setPastSupportForm((prev) => ({ ...prev, bottomAmount: text.replace(/[^\d.]/g, "") }))
+                  }
+                  keyboardType="numeric"
+                  placeholder="0"
+                  placeholderTextColor="#64748b"
+                />
+              </View>
+              <View style={pastStyles.row}>
+                <Text style={pastStyles.label}>SHG Loan taken through:</Text>
+                <CycleDropdown
+                  value={pastSupportForm.bottomLoanThrough}
+                  options={sourceOptions}
+                  style={pastStyles.dropdown}
+                  onChange={(value) =>
+                    setPastSupportForm((prev) => ({ ...prev, bottomLoanThrough: value }))
+                  }
+                />
+              </View>
+              <View style={pastStyles.row}>
+                <Text style={pastStyles.label}>Rate of Interest:</Text>
+                <CycleDropdown
+                  value={pastSupportForm.interestRate}
+                  options={rateOptions}
+                  style={pastStyles.dropdown}
+                  onChange={(value) => setPastSupportForm((prev) => ({ ...prev, interestRate: value }))}
+                />
+              </View>
+              <View style={pastStyles.row}>
+                <Text style={pastStyles.label}>Repayment Completed:</Text>
+                <TextInput
+                  style={pastStyles.input}
+                  value={pastSupportForm.repaymentCompleted}
+                  onChangeText={(text) =>
+                    setPastSupportForm((prev) => ({
+                      ...prev,
+                      repaymentCompleted: text.replace(/[^\d.]/g, "")
+                    }))
+                  }
+                  keyboardType="numeric"
+                  placeholder="0"
+                  placeholderTextColor="#64748b"
+                />
+              </View>
+              <View style={pastStyles.row}>
+                <Text style={pastStyles.label}>Balance Amount:</Text>
+                <TextInput style={pastStyles.inputReadOnly} value={`${topBalance}`} editable={false} />
+              </View>
+              <View style={pastStyles.row}>
+                <Text style={pastStyles.label}>Transaction Status:</Text>
+                <CycleDropdown
+                  value={pastSupportForm.transactionStatus}
+                  options={statusOptions}
+                  style={pastStyles.dropdown}
+                  onChange={(value) =>
+                    setPastSupportForm((prev) => ({ ...prev, transactionStatus: value }))
+                  }
+                />
+              </View>
+              <Pressable
+                style={pastStyles.linkBtn}
+                onPress={() => onOpenUpdateData("technicalSupportTransaction")}
+              >
+                <Text style={pastStyles.linkBtnText}>Transaction Details</Text>
+              </Pressable>
+              <Pressable
+                style={pastStyles.saveBtn}
+                onPress={() => {
+                  Alert.alert("Saved", "Past support details saved.");
+                  onOpenUpdateData("technicalSupport");
+                }}
+              >
+                <Text style={pastStyles.saveBtnText}>Save</Text>
+              </Pressable>
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
+  if (homeView === "technicalSupportTransaction") {
+    const paymentByOptions = ["CIF", "RF", "Bank Loan", "PMFME"];
+    const principalDue = Number(pastSupportForm.bottomAmount) || 0;
+    const interestDue = Number(((principalDue * (Number(pastSupportForm.interestRate) || 0)) / 100).toFixed(2));
+    const totalDue = Number((principalDue + interestDue).toFixed(2));
+    const monthName = new Date().toLocaleString("en-US", { month: "short" });
+
+    return (
+      <View style={pageStyles.screen}>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <View style={[pageStyles.frame, txnStyles.frame]}>
+            <View style={txnStyles.row}>
+              <Text style={txnStyles.label}>Present Month Loan Repayment Status:</Text>
+              <TextInput
+                style={txnStyles.input}
+                value={transactionDetailsForm.presentMonthLoanRepaymentStatus}
+                onChangeText={(text) =>
+                  setTransactionDetailsForm((prev) => ({
+                    ...prev,
+                    presentMonthLoanRepaymentStatus: text
+                  }))
+                }
+                placeholder="Auto (Present Month)"
+                placeholderTextColor="#64748b"
+              />
+            </View>
+
+            <View style={txnStyles.row}>
+              <Text style={txnStyles.label}>Payment Details of Loan Taken By:</Text>
+              <CycleDropdown
+                value={transactionDetailsForm.paymentDetailsBy}
+                options={paymentByOptions}
+                style={txnStyles.dropdown}
+                onChange={(value) =>
+                  setTransactionDetailsForm((prev) => ({ ...prev, paymentDetailsBy: value }))
+                }
+              />
+            </View>
+
+            <View style={txnStyles.row}>
+              <Text style={txnStyles.label}>Upload the Payment Slip:</Text>
+              <TextInput
+                style={txnStyles.input}
+                value={transactionDetailsForm.paymentSlipName}
+                onChangeText={(text) =>
+                  setTransactionDetailsForm((prev) => ({ ...prev, paymentSlipName: text }))
+                }
+                placeholder="JPEG Slip Name"
+                placeholderTextColor="#64748b"
+              />
+            </View>
+
+            <View style={txnStyles.row}>
+              <Text style={txnStyles.label}>Principal (To be pay as per Loan Cycle):</Text>
+              <TextInput style={txnStyles.inputReadOnly} value={`${principalDue}`} editable={false} />
+            </View>
+            <View style={txnStyles.row}>
+              <Text style={txnStyles.label}>Interest (To be pay as per Loan Cycle):</Text>
+              <TextInput style={txnStyles.inputReadOnly} value={`${interestDue}`} editable={false} />
+            </View>
+            <View style={txnStyles.row}>
+              <Text style={txnStyles.label}>Total (To be pay as per Loan Cycle):</Text>
+              <TextInput style={txnStyles.inputReadOnly} value={`${totalDue}`} editable={false} />
+            </View>
+
+            <View style={txnStyles.row}>
+              <Text style={txnStyles.label}>Principal (Amount Paid):</Text>
+              <TextInput
+                style={txnStyles.input}
+                value={transactionDetailsForm.principalPaid}
+                onChangeText={(text) =>
+                  setTransactionDetailsForm((prev) => ({
+                    ...prev,
+                    principalPaid: text.replace(/[^\d.]/g, "")
+                  }))
+                }
+                keyboardType="numeric"
+                placeholder="0"
+                placeholderTextColor="#64748b"
+              />
+            </View>
+            <View style={txnStyles.row}>
+              <Text style={txnStyles.label}>Interest (Amount Paid):</Text>
+              <TextInput
+                style={txnStyles.input}
+                value={transactionDetailsForm.interestPaid}
+                onChangeText={(text) =>
+                  setTransactionDetailsForm((prev) => ({
+                    ...prev,
+                    interestPaid: text.replace(/[^\d.]/g, "")
+                  }))
+                }
+                keyboardType="numeric"
+                placeholder="0"
+                placeholderTextColor="#64748b"
+              />
+            </View>
+            <View style={txnStyles.row}>
+              <Text style={txnStyles.label}>Total (Amount Paid):</Text>
+              <TextInput
+                style={txnStyles.input}
+                value={transactionDetailsForm.totalPaid}
+                onChangeText={(text) =>
+                  setTransactionDetailsForm((prev) => ({
+                    ...prev,
+                    totalPaid: text.replace(/[^\d.]/g, "")
+                  }))
+                }
+                keyboardType="numeric"
+                placeholder="0"
+                placeholderTextColor="#64748b"
+              />
+            </View>
+
+            <Text style={txnStyles.tableTitle}>Month-wise Repayment Status:</Text>
+            <View style={txnStyles.table}>
+              <View style={txnStyles.tableHead}>
+                <Text style={txnStyles.thMonth}>Month</Text>
+                <Text style={txnStyles.th}>Principal to be Pay</Text>
+                <Text style={txnStyles.th}>Interest to be Pay</Text>
+                <Text style={txnStyles.th}>Principal Paid</Text>
+                <Text style={txnStyles.th}>Interest Paid</Text>
+                <Text style={txnStyles.th}>Outstanding</Text>
+              </View>
+              <View style={txnStyles.tableRow}>
+                <Text style={txnStyles.tdMonth}>{monthName}</Text>
+                <Text style={txnStyles.td}>{principalDue}</Text>
+                <Text style={txnStyles.td}>{interestDue}</Text>
+                <Text style={txnStyles.td}>{transactionDetailsForm.principalPaid || "0"}</Text>
+                <Text style={txnStyles.td}>{transactionDetailsForm.interestPaid || "0"}</Text>
+                <Text style={txnStyles.td}>
+                  {Math.max(
+                    totalDue - ((Number(transactionDetailsForm.principalPaid) || 0) + (Number(transactionDetailsForm.interestPaid) || 0)),
+                    0
+                  ).toFixed(2)}
+                </Text>
+              </View>
+            </View>
+
+            <View style={txnStyles.buttonRow}>
+              <Pressable
+                style={txnStyles.actionBtn}
+                onPress={() => {
+                  Alert.alert("Saved", "Transaction details saved.");
+                  onOpenUpdateData("technicalSupportPast");
+                }}
+              >
+                <Text style={txnStyles.actionBtnText}>Save</Text>
+              </Pressable>
+              <Pressable
+                style={txnStyles.backBtn}
+                onPress={() => onOpenUpdateData("technicalSupportPast")}
+              >
+                <Text style={txnStyles.backBtnText}>Back</Text>
+              </Pressable>
+            </View>
+          </View>
+        </ScrollView>
       </View>
     );
   }
@@ -1402,6 +2962,812 @@ const smStyles = StyleSheet.create({
     paddingVertical: 9
   },
   saveBtnText: {
+    color: "#ffffff",
+    fontSize: 12,
+    fontWeight: "800"
+  }
+});
+
+const flowStyles = StyleSheet.create({
+  headerCard: {
+    backgroundColor: "#6b7280",
+    borderWidth: 1,
+    borderColor: "#4b5563",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    gap: 3
+  },
+  headerLine: {
+    color: "#ffffff",
+    fontSize: 12,
+    fontWeight: "700"
+  },
+  statusTitle: {
+    color: "#111827",
+    fontSize: 13,
+    fontWeight: "800"
+  },
+  profileButton: {
+    backgroundColor: "#3b67b8",
+    borderWidth: 1,
+    borderColor: "#3159a5",
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    marginTop: 6
+  },
+  profileButtonText: {
+    color: "#ffffff",
+    fontSize: 18,
+    fontWeight: "800"
+  },
+  footerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 8
+  },
+  geoDot: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 1
+  },
+  geoDotGreen: {
+    backgroundColor: "#22c55e",
+    borderColor: "#15803d"
+  },
+  geoDotRed: {
+    backgroundColor: "#ef4444",
+    borderColor: "#b91c1c"
+  },
+  primarySaveBtn: {
+    flex: 1,
+    backgroundColor: "#f97316",
+    borderWidth: 1,
+    borderColor: "#c2410c",
+    borderRadius: 6,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 9
+  },
+  primarySaveText: {
+    color: "#ffffff",
+    fontSize: 12,
+    fontWeight: "800"
+  },
+  statusBackBtn: {
+    marginTop: 2,
+    backgroundColor: "#1e40af",
+    borderWidth: 1,
+    borderColor: "#1e3a8a",
+    borderRadius: 6,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 9
+  },
+  statusBackBtnText: {
+    color: "#ffffff",
+    fontSize: 12,
+    fontWeight: "800"
+  },
+  formTitle: {
+    color: "#111827",
+    fontSize: 15,
+    fontWeight: "800"
+  },
+  formRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8
+  },
+  formLabel: {
+    flex: 1,
+    color: "#111827",
+    fontSize: 12,
+    fontWeight: "700"
+  },
+  input: {
+    width: 128,
+    borderWidth: 1,
+    borderColor: "#9ca3af",
+    borderRadius: 4,
+    backgroundColor: "#ffffff",
+    color: "#111827",
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    fontSize: 12,
+    fontWeight: "700"
+  },
+  ddBox: {
+    width: 128,
+    borderWidth: 1,
+    borderColor: "#9ca3af",
+    borderRadius: 4,
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between"
+  },
+  ddText: {
+    color: "#111827",
+    fontSize: 11,
+    fontWeight: "700",
+    flex: 1,
+    marginRight: 6
+  },
+  ddArrow: {
+    color: "#f97316",
+    fontSize: 12,
+    fontWeight: "900"
+  }
+});
+
+const apStyles = StyleSheet.create({
+  frame: {
+    borderRadius: 2,
+    borderColor: "#8c8c8c",
+    backgroundColor: "#d7d7d7",
+    padding: 8
+  },
+  titleWrap: {
+    alignSelf: "center",
+    borderWidth: 1,
+    borderColor: "#555555",
+    backgroundColor: "#e6e6e6",
+    paddingHorizontal: 12,
+    paddingVertical: 4
+  },
+  title: {
+    color: "#1f1f1f",
+    fontSize: 24,
+    fontWeight: "700"
+  },
+  sectionType: {
+    alignSelf: "flex-end",
+    color: "#1f2937",
+    fontSize: 12,
+    fontWeight: "800"
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8
+  },
+  leftRow: {
+    width: "66%",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6
+  },
+  label: {
+    flex: 1,
+    color: "#111827",
+    fontSize: 12,
+    fontWeight: "600"
+  },
+  input: {
+    width: 110,
+    borderWidth: 1,
+    borderColor: "#5f5f5f",
+    backgroundColor: "#ffffff",
+    color: "#111827",
+    fontSize: 11,
+    paddingHorizontal: 6,
+    paddingVertical: 4
+  },
+  dropdown: {
+    width: 110,
+    borderRadius: 0,
+    borderColor: "#5f5f5f",
+    paddingVertical: 4
+  },
+  actionRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 24,
+    marginTop: 4
+  },
+  actionBtn: {
+    minWidth: 86,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#4d7dc9",
+    borderWidth: 1,
+    borderColor: "#3159a5",
+    borderRadius: 8,
+    paddingVertical: 8,
+    shadowColor: "#1e3a8a",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2
+  },
+  actionBtnText: {
+    color: "#f8fafc",
+    fontSize: 16,
+    fontWeight: "700"
+  }
+});
+
+const nfStyles = StyleSheet.create({
+  frame: {
+    borderRadius: 2,
+    borderWidth: 1,
+    borderColor: "#7f7f7f",
+    backgroundColor: "#d8d8d8",
+    padding: 8
+  },
+  titleWrap: {
+    alignSelf: "center",
+    borderWidth: 1,
+    borderColor: "#666666",
+    backgroundColor: "#ececec",
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    marginBottom: 6
+  },
+  title: {
+    color: "#1f1f1f",
+    fontSize: 24,
+    fontWeight: "700"
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6
+  },
+  label: {
+    width: 84,
+    color: "#111827",
+    fontSize: 10,
+    fontWeight: "700"
+  },
+  input: {
+    width: 132,
+    borderWidth: 1,
+    borderColor: "#535353",
+    backgroundColor: "#ffffff",
+    color: "#111827",
+    fontSize: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 3
+  },
+  dropdown: {
+    width: 132,
+    borderRadius: 0,
+    borderColor: "#535353",
+    paddingVertical: 3
+  },
+  toggleWrap: {
+    width: 132,
+    flexDirection: "row",
+    gap: 6
+  },
+  toggleBtn: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#818181",
+    borderRadius: 999,
+    backgroundColor: "#efefef",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 3
+  },
+  toggleBtnActive: {
+    backgroundColor: "#dbeafe",
+    borderColor: "#1d4ed8"
+  },
+  toggleText: {
+    color: "#111827",
+    fontSize: 10,
+    fontWeight: "700"
+  },
+  complianceHeader: {
+    alignItems: "center",
+    marginTop: 4
+  },
+  complianceTitle: {
+    color: "#111827",
+    fontSize: 16,
+    fontWeight: "800",
+    textDecorationLine: "underline"
+  },
+  saveBtn: {
+    alignSelf: "flex-start",
+    marginTop: 6,
+    minWidth: 120,
+    backgroundColor: "#f97316",
+    borderWidth: 1,
+    borderColor: "#c2410c",
+    borderRadius: 6,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 8
+  },
+  saveBtnText: {
+    color: "#ffffff",
+    fontSize: 12,
+    fontWeight: "800"
+  }
+});
+
+const tsCardStyles = StyleSheet.create({
+  frame: {
+    borderRadius: 26,
+    borderColor: "#222222",
+    backgroundColor: "#d9d9d9",
+    borderWidth: 1.2,
+    padding: 10
+  },
+  headerCard: {
+    backgroundColor: "#7b7f87",
+    borderWidth: 1,
+    borderColor: "#4b4f56",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    gap: 4
+  },
+  headerLine: {
+    color: "#0f172a",
+    fontSize: 12,
+    fontWeight: "800"
+  },
+  mainButton: {
+    backgroundColor: "#3f6bbe",
+    borderWidth: 1,
+    borderColor: "#3159a5",
+    borderRadius: 12,
+    minHeight: 62,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#334155",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4
+  },
+  mainButtonText: {
+    color: "#f8fafc",
+    textAlign: "center",
+    fontSize: 17,
+    fontWeight: "800",
+    lineHeight: 24
+  },
+  segmentRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 8
+  },
+  segmentBtn: {
+    flex: 1,
+    minHeight: 54,
+    borderRadius: 10,
+    backgroundColor: "#4b6ca9",
+    borderWidth: 1,
+    borderColor: "#2f4f86",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#334155",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 2
+  },
+  segmentBtnActive: {
+    backgroundColor: "#3f6bbe",
+    borderColor: "#274c94"
+  },
+  segmentBtnText: {
+    color: "#f8fafc",
+    textAlign: "center",
+    fontSize: 14,
+    fontWeight: "800",
+    lineHeight: 18
+  },
+  footerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10
+  },
+  geoDot: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1
+  },
+  geoDotGreen: {
+    backgroundColor: "#22c55e",
+    borderColor: "#15803d"
+  },
+  geoDotRed: {
+    backgroundColor: "#ef4444",
+    borderColor: "#b91c1c"
+  },
+  saveBtn: {
+    flex: 1,
+    backgroundColor: "#f97316",
+    borderWidth: 1,
+    borderColor: "#c2410c",
+    borderRadius: 7,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10
+  },
+  saveBtnText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "800"
+  }
+});
+
+const tsDetailStyles = StyleSheet.create({
+  frame: {
+    borderRadius: 2,
+    borderWidth: 1,
+    borderColor: "#8b8b8b",
+    backgroundColor: "#d8d8d8",
+    padding: 10
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8
+  },
+  label: {
+    width: 134,
+    color: "#111827",
+    fontSize: 11,
+    fontWeight: "700"
+  },
+  input: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#666666",
+    backgroundColor: "#ffffff",
+    color: "#111827",
+    fontSize: 11,
+    paddingHorizontal: 8,
+    paddingVertical: 5
+  },
+  dropdown: {
+    flex: 1,
+    borderRadius: 0,
+    borderColor: "#666666",
+    paddingVertical: 5
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "#8b8b8b",
+    marginVertical: 4
+  },
+  saveBtn: {
+    alignSelf: "center",
+    minWidth: 120,
+    backgroundColor: "#f97316",
+    borderWidth: 1,
+    borderColor: "#c2410c",
+    borderRadius: 7,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 9,
+    marginTop: 4
+  },
+  saveBtnText: {
+    color: "#ffffff",
+    fontSize: 13,
+    fontWeight: "800"
+  }
+});
+
+const fsStyles = StyleSheet.create({
+  frame: {
+    borderRadius: 2,
+    borderWidth: 1,
+    borderColor: "#8b8b8b",
+    backgroundColor: "#d8d8d8",
+    padding: 10
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8
+  },
+  label: {
+    width: 142,
+    color: "#111827",
+    fontSize: 12,
+    fontWeight: "700"
+  },
+  dropdown: {
+    flex: 1,
+    borderRadius: 0,
+    borderColor: "#666666",
+    paddingVertical: 5
+  },
+  toggleWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6
+  },
+  toggleDot: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 1
+  },
+  toggleDotOn: {
+    backgroundColor: "#16a34a",
+    borderColor: "#166534"
+  },
+  toggleDotOff: {
+    backgroundColor: "#cbd5e1",
+    borderColor: "#64748b"
+  },
+  toggleText: {
+    color: "#111827",
+    fontSize: 12,
+    fontWeight: "700"
+  },
+  bottomRow: {
+    marginTop: 8,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10
+  },
+  popupBtn: {
+    width: 74,
+    minHeight: 64,
+    backgroundColor: "#06b6d4",
+    borderWidth: 1,
+    borderColor: "#0e7490",
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  popupBtnText: {
+    color: "#0f172a",
+    fontSize: 11,
+    fontWeight: "800",
+    textAlign: "center",
+    textDecorationLine: "underline"
+  },
+  saveBtn: {
+    minWidth: 96,
+    backgroundColor: "#22c55e",
+    borderWidth: 1,
+    borderColor: "#15803d",
+    borderRadius: 7,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 18
+  },
+  saveBtnText: {
+    color: "#ffffff",
+    fontSize: 13,
+    fontWeight: "800"
+  }
+});
+
+const pastStyles = StyleSheet.create({
+  frame: {
+    borderRadius: 2,
+    borderWidth: 1,
+    borderColor: "#8b8b8b",
+    backgroundColor: "#d8d8d8",
+    padding: 8
+  },
+  section: {
+    borderWidth: 1,
+    borderColor: "#8b8b8b",
+    backgroundColor: "#eeeeee",
+    padding: 8,
+    gap: 4
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8
+  },
+  label: {
+    width: 144,
+    color: "#111827",
+    fontSize: 11,
+    fontWeight: "700"
+  },
+  input: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#666666",
+    backgroundColor: "#ffffff",
+    color: "#111827",
+    fontSize: 11,
+    paddingHorizontal: 8,
+    paddingVertical: 5
+  },
+  inputReadOnly: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#666666",
+    backgroundColor: "#e2e8f0",
+    color: "#111827",
+    fontSize: 11,
+    paddingHorizontal: 8,
+    paddingVertical: 5
+  },
+  dropdown: {
+    flex: 1,
+    borderRadius: 0,
+    borderColor: "#666666",
+    paddingVertical: 5
+  },
+  saveBtn: {
+    alignSelf: "flex-end",
+    minWidth: 88,
+    backgroundColor: "#3b67b8",
+    borderWidth: 1,
+    borderColor: "#3159a5",
+    borderRadius: 6,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 8,
+    marginTop: 4
+  },
+  saveBtnText: {
+    color: "#ffffff",
+    fontSize: 12,
+    fontWeight: "800"
+  },
+  linkBtn: {
+    alignSelf: "flex-start",
+    borderWidth: 1,
+    borderColor: "#1d4ed8",
+    backgroundColor: "#dbeafe",
+    borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4
+  },
+  linkBtnText: {
+    color: "#1e3a8a",
+    fontSize: 11,
+    fontWeight: "800"
+  }
+});
+
+const txnStyles = StyleSheet.create({
+  frame: {
+    borderRadius: 2,
+    borderWidth: 1,
+    borderColor: "#8b8b8b",
+    backgroundColor: "#d8d8d8",
+    padding: 8
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8
+  },
+  label: {
+    width: 188,
+    color: "#111827",
+    fontSize: 11,
+    fontWeight: "700"
+  },
+  input: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#666666",
+    backgroundColor: "#ffffff",
+    color: "#111827",
+    fontSize: 11,
+    paddingHorizontal: 8,
+    paddingVertical: 5
+  },
+  inputReadOnly: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#666666",
+    backgroundColor: "#e2e8f0",
+    color: "#111827",
+    fontSize: 11,
+    paddingHorizontal: 8,
+    paddingVertical: 5
+  },
+  dropdown: {
+    flex: 1,
+    borderRadius: 0,
+    borderColor: "#666666",
+    paddingVertical: 5
+  },
+  tableTitle: {
+    color: "#111827",
+    fontSize: 12,
+    fontWeight: "800",
+    marginTop: 6
+  },
+  table: {
+    borderWidth: 1,
+    borderColor: "#555555",
+    backgroundColor: "#f3f4f6"
+  },
+  tableHead: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: "#555555",
+    backgroundColor: "#e5e7eb"
+  },
+  tableRow: {
+    flexDirection: "row"
+  },
+  thMonth: {
+    width: 58,
+    borderRightWidth: 1,
+    borderRightColor: "#555555",
+    padding: 4,
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#111827"
+  },
+  th: {
+    flex: 1,
+    borderRightWidth: 1,
+    borderRightColor: "#555555",
+    padding: 4,
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#111827"
+  },
+  tdMonth: {
+    width: 58,
+    borderRightWidth: 1,
+    borderRightColor: "#555555",
+    padding: 4,
+    fontSize: 10,
+    color: "#111827"
+  },
+  td: {
+    flex: 1,
+    borderRightWidth: 1,
+    borderRightColor: "#555555",
+    padding: 4,
+    fontSize: 10,
+    color: "#111827"
+  },
+  buttonRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 8
+  },
+  actionBtn: {
+    minWidth: 86,
+    backgroundColor: "#3b67b8",
+    borderWidth: 1,
+    borderColor: "#3159a5",
+    borderRadius: 6,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 8
+  },
+  actionBtnText: {
+    color: "#ffffff",
+    fontSize: 12,
+    fontWeight: "800"
+  },
+  backBtn: {
+    minWidth: 70,
+    backgroundColor: "#1f2937",
+    borderWidth: 1,
+    borderColor: "#111827",
+    borderRadius: 6,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 8
+  },
+  backBtnText: {
     color: "#ffffff",
     fontSize: 12,
     fontWeight: "800"

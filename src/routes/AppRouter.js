@@ -4,8 +4,6 @@ import BottomNav from "../components/BottomNav";
 import DashboardHomeTab from "../screens/tabs/DashboardHomeTab.js";
 import LoanTab from "../screens/tabs/LoanTab";
 import ProfileTab from "../screens/tabs/ProfileTab";
-import ReportsTab from "../screens/tabs/ReportsTab";
-import ShgVisitTab from "../screens/tabs/ShgVisitTab";
 import LanguageScreen from "../screens/LanguageScreen";
 import LoginScreen from "../screens/LoginScreen";
 import SplashScreen from "../screens/SplashScreen";
@@ -28,7 +26,6 @@ export default function AppRouter() {
   const [language, setLanguage] = useState("English");
   const [activeTab, setActiveTab] = useState("Home");
   const [homeView, setHomeView] = useState("dashboard");
-  const [reportsFlowPreset, setReportsFlowPreset] = useState("Update Data");
 
   const [loginForm, setLoginForm] = useState({
     idType: "CRP ID",
@@ -103,19 +100,6 @@ export default function AppRouter() {
       date: "2026-02-10"
     }
   ]);
-
-  const [shgState, setShgState] = useState({
-    screen: "list",
-    search: "",
-    block: "All",
-    village: "All",
-    selectedId: "SHG-101",
-    visitStarted: false,
-    timestamp: "",
-    distance: 72,
-    photoCaptured: false,
-    remarks: ""
-  });
 
   const [loan, setLoan] = useState({
     screen: "Add Loan",
@@ -274,15 +258,14 @@ export default function AppRouter() {
     setActiveTab("Home");
   };
 
-  const onOpenLhCboActivity = () => {
-    setHomeView("lhCboActivity");
+  const onOpenLhCboActivity = (targetView = "lhCboActivity") => {
+    setHomeView(targetView);
     setActiveTab("Home");
   };
 
-  const onOpenUpdateData = () => {
-    setHomeView("dashboard");
-    setReportsFlowPreset("Update Data");
-    setActiveTab("Reports");
+  const onOpenUpdateData = (targetView = "dashboard") => {
+    setHomeView(targetView);
+    setActiveTab("Home");
   };
 
   const onSaveLoan = () => {
@@ -357,9 +340,6 @@ export default function AppRouter() {
                 onBackToDashboard={() => setHomeView("dashboard")}
               />
             ) : null}
-            {activeTab === "SHG" ? (
-              <ShgVisitTab shgState={shgState} setShgState={setShgState} />
-            ) : null}
             {activeTab === "Loan" ? (
               <LoanTab
                 loan={loan}
@@ -367,14 +347,6 @@ export default function AppRouter() {
                 onSaveLoan={onSaveLoan}
                 onRepay={onRepay}
                 onNotify={onNotify}
-              />
-            ) : null}
-            {activeTab === "Reports" ? (
-              <ReportsTab
-                user={user}
-                alerts={alerts}
-                activities={activities}
-                flowPreset={reportsFlowPreset}
               />
             ) : null}
             {activeTab === "Profile" ? (

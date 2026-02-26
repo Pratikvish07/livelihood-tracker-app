@@ -3,7 +3,7 @@ import { Pressable, Text, View } from "react-native";
 import { useI18n } from "../i18n/I18nProvider";
 import styles from "../styles/appStyles";
 
-const TABS = ["Home", "SHG", "Loan", "Reports", "Profile"];
+const TABS = ["Home", "Loan", "Profile"];
 
 export default function BottomNav({ active, setActive }) {
   const { t } = useI18n();
