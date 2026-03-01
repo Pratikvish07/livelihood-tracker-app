@@ -80,6 +80,24 @@ export default function DashboardHomeTab({
   const shgMembers = ["Anita", "Rekha", "Puja", "Mina"];
   const activityTypes = ["Goat Rearing", "Poultry", "Vegetable Farming", "Tailoring"];
   const subCategories = ["Farm", "Livestock", "Fishery", "Non-Farm"];
+  const livelihoodCboTypeOptions = [
+    "Producers Group (PG)",
+    "Non-Farm Collective (NFC)",
+    "Integrated Farming Cluster Collective (IFC)",
+    "Custom Hiring Center Collective (CHC)"
+  ];
+  const livelihoodCboNameOptions = [
+    "Jeevan Producers Group",
+    "Maa Tara NFC",
+    "Green Valley FPC",
+    "Krishi CHC Unit"
+  ];
+  const livelihoodCboActivityOptions = [
+    "Goat Rearing Collective",
+    "Vegetable Cluster Farming",
+    "Poultry Group Activity",
+    "Tailoring Unit Activity"
+  ];
   const [shgName, setShgName] = useState(shgNames[0]);
   const [memberName, setMemberName] = useState(shgMembers[0]);
   const [activityType, setActivityType] = useState(activityTypes[0]);
@@ -88,16 +106,20 @@ export default function DashboardHomeTab({
   const [openMemberDropdown, setOpenMemberDropdown] = useState(false);
   const [openActivityDropdown, setOpenActivityDropdown] = useState(false);
   const [openSubCategoryDropdown, setOpenSubCategoryDropdown] = useState(false);
+  const [lhCboType, setLhCboType] = useState(livelihoodCboTypeOptions[0]);
+  const [selectedLhCboName, setSelectedLhCboName] = useState(livelihoodCboNameOptions[0]);
+  const [selectedLhCboActivity, setSelectedLhCboActivity] = useState(
+    livelihoodCboActivityOptions[0]
+  );
+  const [lhCboImages, setLhCboImages] = useState([]);
+  const [lhCboImageIndex, setLhCboImageIndex] = useState(0);
   const [memberBelongsToLhCbo, setMemberBelongsToLhCbo] = useState(false);
   const [lhCboName, setLhCboName] = useState("");
   const [distanceToMember, setDistanceToMember] = useState(null);
   const [isDistanceLoading, setIsDistanceLoading] = useState(false);
   const [locationPromptRequired, setLocationPromptRequired] = useState(false);
   const [currentCrpLocation, setCurrentCrpLocation] = useState(null);
-  const [activityCoordinates, setActivityCoordinates] = useState({
-    latitude: 23.9045,
-    longitude: 87.5245
-  });
+  const [activityCoordinates, setActivityCoordinates] = useState(null);
   const [uploadedImageName, setUploadedImageName] = useState("");
   const [uploadedImageDate, setUploadedImageDate] = useState("");
   const [uploadedImageUri, setUploadedImageUri] = useState("");
@@ -193,15 +215,109 @@ export default function DashboardHomeTab({
     month6: ""
   });
 
-  const shgMemberRecordedLocation = useMemo(() => {
-    const mapping = {
-      Anita: { latitude: 23.9045, longitude: 87.5245 },
-      Rekha: { latitude: 23.9049, longitude: 87.5242 },
-      Puja: { latitude: 23.9051, longitude: 87.5248 },
-      Mina: { latitude: 23.9038, longitude: 87.5251 }
+  // Graph page state
+  const [graphType, setGraphType] = useState(null);
+  const [graphImageFailed, setGraphImageFailed] = useState(false);
+
+  // Sample graph data
+  const graphData = {
+    visits: {
+      title: "visits",
+      values: [12, 18, 15, 22, 28, 25, 30],
+      color: "#3b67b8"
+    },
+    members: {
+      title: "members",
+      values: [5, 8, 12, 10, 15, 18, 20],
+      color: "#0f766e"
+    },
+    honorarium: {
+      title: "honorarium",
+      values: [5000, 7500, 6000, 8000, 9500, 10000, 12000],
+      color: "#f97316"
+    }
+  };
+
+  const handleGraphPress = (type) => {
+    setGraphType(type);
+    setGraphImageFailed(false);
+  };
+
+  const closeGraphView = () => {
+    setGraphType(null);
+  };
+
+  const pieMetaByType = useMemo(
+    () => ({
+      visits: {
+        title: "Visit Distribution (Last 30 days)",
+        unit: "visits",
+        labels: ["Week 1", "Week 2", "Week 3", "Week 4"],
+        values: [
+          graphData.visits.values[0] + graphData.visits.values[1],
+          graphData.visits.values[2] + graphData.visits.values[3],
+          graphData.visits.values[4] + graphData.visits.values[5],
+          graphData.visits.values[6]
+        ],
+        colors: ["#2563eb", "#0f766e", "#f97316", "#9333ea"]
+      },
+      members: {
+        title: "SHG Member Coverage",
+        unit: "members",
+        labels: ["Assigned", "Visited", "Revisit", "Pending"],
+        values: [
+          30,
+          Number(dashboardMetrics.totalMembersVisited || 18),
+          7,
+          5
+        ],
+        colors: ["#1d4ed8", "#0891b2", "#16a34a", "#f59e0b"]
+      },
+      honorarium: {
+        title: "Honorarium Composition",
+        unit: "amount",
+        labels: ["Received", "To be Claimed", "Expected Bonus"],
+        values: [
+          Number(dashboardMetrics.honorariumReceived || 8500),
+          Number(dashboardMetrics.honorariumToBeClaimed || 3200),
+          1200
+        ],
+        colors: ["#f97316", "#22c55e", "#3b82f6"]
+      }
+    }),
+    [dashboardMetrics.honorariumReceived, dashboardMetrics.honorariumToBeClaimed, dashboardMetrics.totalMembersVisited]
+  );
+
+  const selectedPieMeta = graphType ? pieMetaByType[graphType] : null;
+  const selectedPieTotal = selectedPieMeta
+    ? selectedPieMeta.values.reduce((sum, current) => sum + Math.max(0, Number(current) || 0), 0)
+    : 0;
+
+  const pieChartUrl = useMemo(() => {
+    if (!selectedPieMeta) return "";
+    const quickChartConfig = {
+      type: "pie",
+      data: {
+        labels: selectedPieMeta.labels.map(
+          (label, index) => `${label}: ${selectedPieMeta.values[index]}`
+        ),
+        datasets: [
+          {
+            data: selectedPieMeta.values,
+            backgroundColor: selectedPieMeta.colors
+          }
+        ]
+      },
+      options: {
+        plugins: {
+          legend: { display: false }
+        }
+      }
     };
-    return mapping[memberName] || mapping.Anita;
-  }, [memberName]);
+    return `https://quickchart.io/chart?width=460&height=320&c=${encodeURIComponent(
+      JSON.stringify(quickChartConfig)
+    )}`;
+  }, [selectedPieMeta]);
 
   const isWithin50Meters = distanceToMember !== null && distanceToMember <= 50;
   const normalizedSubCategory =
@@ -219,6 +335,15 @@ export default function DashboardHomeTab({
     Fishery: "lhActivityFishery"
   };
   const currentStatusView = statusBySubCategory[normalizedSubCategory] || "lhStatusFarm";
+  const lhCboStatusViewByType = {
+    "Producers Group (PG)": "lhCboStatusPg",
+    "Non-Farm Collective (NFC)": "lhCboStatusNfc",
+    "Integrated Farming Cluster Collective (IFC)": "lhCboStatusIfc",
+    "Custom Hiring Center Collective (CHC)": "lhCboStatusChc"
+  };
+  const selectedLhCboStatusView = lhCboStatusViewByType[lhCboType] || "lhCboStatusPg";
+  const activeLhCboImage =
+    lhCboImages.length > 0 ? lhCboImages[Math.min(lhCboImageIndex, lhCboImages.length - 1)] : "";
 
   const checkRadiusDistance = async (silent = false) => {
     setIsDistanceLoading(true);
@@ -230,24 +355,35 @@ export default function DashboardHomeTab({
         setCurrentCrpLocation(null);
         setLocationPromptRequired(true);
         if (!silent) {
-          Alert.alert(
-            "Enable Location",
-            "Please enable location permission for SHG onboarding geofencing."
-          );
+          const locationHelp =
+            Platform.OS === "web"
+              ? "Allow browser location, ensure page is running in secure context (https/localhost), then tap Check 50m Radius again."
+              : "Please enable device location permission and GPS, then tap Check 50m Radius again.";
+          Alert.alert("Enable Location", locationHelp);
         }
         return null;
       }
       setCurrentCrpLocation(current);
-      const autoActivityLocation = {
-        latitude: current.latitude,
-        longitude: current.longitude
-      };
-      setActivityCoordinates(autoActivityLocation);
+      if (!activityCoordinates) {
+        const autoGeneratedLocation = {
+          latitude: current.latitude,
+          longitude: current.longitude
+        };
+        setActivityCoordinates(autoGeneratedLocation);
+        setDistanceToMember(0);
+        if (!silent) {
+          Alert.alert(
+            "Location Captured",
+            "Longitude and latitude were auto-generated from current GPS location."
+          );
+        }
+        return 0;
+      }
       const meters = calculateDistance(
         current.latitude,
         current.longitude,
-        autoActivityLocation.latitude,
-        autoActivityLocation.longitude
+        activityCoordinates.latitude,
+        activityCoordinates.longitude
       );
       const rounded = Math.round(meters);
       setDistanceToMember(rounded);
@@ -280,6 +416,30 @@ export default function DashboardHomeTab({
     onOpenLhCboActivity(currentStatusView);
   };
 
+  const handleLhCboSaveAndNext = async () => {
+    const meters = await checkRadiusDistance(false);
+    if (meters === null) {
+      Alert.alert(
+        "Location Required",
+        "Enable location and check radius before continuing."
+      );
+      return;
+    }
+    if (meters > 50) {
+      Alert.alert(
+        "Outside 50m Radius",
+        `You are ${meters}m away. Move within 50m of the activity location to continue.`
+      );
+      return;
+    }
+    Alert.alert("Saved", "LH-CBO activity details saved.");
+    onOpenUpdateData("lhCboStatusGuide");
+  };
+
+  const handleLhCboGuideSaveAndNext = () => {
+    onOpenUpdateData(selectedLhCboStatusView);
+  };
+
   const handleProfileSave = (title) => {
     Alert.alert("Saved", `${title} saved successfully.`);
   };
@@ -292,24 +452,24 @@ export default function DashboardHomeTab({
   };
 
   useEffect(() => {
-    if (homeView === "shgMember") {
-      checkRadiusDistance(true);
+    setActivityCoordinates(null);
+    setDistanceToMember(null);
+    setLocationPromptRequired(false);
+    setCurrentCrpLocation(null);
+  }, [memberName, homeView]);
+
+  useEffect(() => {
+    if (homeView !== "shgMember" && homeView !== "lhCboActivity") {
+      return undefined;
     }
-  }, [homeView, memberName]);
-
-  useEffect(() => {
-    setActivityCoordinates(shgMemberRecordedLocation);
-  }, [memberName, shgMemberRecordedLocation]);
-
-  useEffect(() => {
-    if (homeView !== "shgMember") {
+    if (!activityCoordinates) {
       return undefined;
     }
     const timer = setInterval(() => {
       checkRadiusDistance(true);
     }, 8000);
     return () => clearInterval(timer);
-  }, [homeView, memberName]);
+  }, [homeView, memberName, activityCoordinates]);
 
   const handleUploadImage = () => {
     if (Platform.OS !== "web") {
@@ -330,6 +490,30 @@ export default function DashboardHomeTab({
       setUploadedImageName(file.name);
       setUploadedImageDate(imageDate);
       setUploadedImageUri(imageUri);
+      Alert.alert("Image Uploaded", `Selected: ${file.name}`);
+    };
+    input.click();
+  };
+
+  const handleUploadLhCboImage = () => {
+    if (Platform.OS !== "web") {
+      Alert.alert("Upload Not Available", "Image upload picker is currently enabled for web.");
+      return;
+    }
+
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.onchange = (event) => {
+      const file = event?.target?.files?.[0];
+      if (!file) return;
+      const imageUri = URL.createObjectURL(file);
+
+      setLhCboImages((prev) => {
+        const updated = [...prev, imageUri];
+        setLhCboImageIndex(updated.length - 1);
+        return updated;
+      });
       Alert.alert("Image Uploaded", `Selected: ${file.name}`);
     };
     input.click();
@@ -454,7 +638,7 @@ export default function DashboardHomeTab({
             <Pressable style={neStyles.portionBtn} onPress={onOpenShgMember}>
               <Text style={neStyles.portionBtnText}>SHG{"\n"}Member</Text>
             </Pressable>
-            <Pressable style={neStyles.portionBtn} onPress={onOpenUpdateData}>
+            <Pressable style={neStyles.portionBtn} onPress={() => onOpenUpdateData("lhCboActivity")}>
               <Text style={neStyles.portionBtnText}>PG/NFC/{"\n"}FPC/CHC</Text>
             </Pressable>
           </View>
@@ -565,13 +749,13 @@ export default function DashboardHomeTab({
           <View style={smStyles.readonlyRow}>
             <Text style={smStyles.readonlyLabel}>Longitude of the Activity*:</Text>
             <Text style={smStyles.readonlyValue}>
-              {activityCoordinates.longitude.toFixed(6)}
+              {activityCoordinates ? activityCoordinates.longitude.toFixed(6) : "--"}
             </Text>
           </View>
           <View style={smStyles.readonlyRow}>
             <Text style={smStyles.readonlyLabel}>Latitude of the Activity*:</Text>
             <Text style={smStyles.readonlyValue}>
-              {activityCoordinates.latitude.toFixed(6)}
+              {activityCoordinates ? activityCoordinates.latitude.toFixed(6) : "--"}
             </Text>
           </View>
           <View style={smStyles.readonlyRow}>
@@ -697,6 +881,74 @@ export default function DashboardHomeTab({
           <Pressable style={wrStyles.backBtn} onPress={onBackToDashboard}>
             <Text style={wrStyles.backBtnText}>Back to Dashboard</Text>
           </Pressable>
+        </View>
+      </View>
+    );
+  }
+
+  if (graphType && selectedPieMeta) {
+    return (
+      <View style={pageStyles.screen}>
+        <View style={pageStyles.bgGlowTop} />
+        <View style={pageStyles.bgGlowBottom} />
+        <View style={pageStyles.frame}>
+          <View style={pageStyles.topRow}>
+            <View style={pageStyles.imageCard}>
+              <Text style={pageStyles.imageText}>CRP{"\n"}Image</Text>
+            </View>
+            <View style={pageStyles.infoCard}>
+              <Text style={pageStyles.infoLine}>CRP ID: {user.identity || "CRP-XXX"}</Text>
+              <Text style={pageStyles.infoLine}>Name: {user.name || "CRP User"}</Text>
+            </View>
+          </View>
+
+          <View style={pageStyles.graphPageCard}>
+            <Text style={pageStyles.graphPageTitle}>{selectedPieMeta.title}</Text>
+
+            <View style={pageStyles.piePreviewWrap}>
+              {graphImageFailed ? (
+                <View style={pageStyles.pieFallbackWrap}>
+                  <Text style={pageStyles.pieFallbackText}>Pie preview unavailable</Text>
+                  <Text style={pageStyles.pieFallbackSubText}>
+                    Showing value distribution below
+                  </Text>
+                </View>
+              ) : (
+                <Image
+                  source={{ uri: pieChartUrl }}
+                  style={pageStyles.piePreviewImage}
+                  resizeMode="contain"
+                  onError={() => setGraphImageFailed(true)}
+                />
+              )}
+            </View>
+
+            <View style={pageStyles.legendWrap}>
+              {selectedPieMeta.labels.map((label, index) => {
+                const value = selectedPieMeta.values[index];
+                const share =
+                  selectedPieTotal > 0 ? Math.round((Number(value) / selectedPieTotal) * 100) : 0;
+                return (
+                  <View key={`${graphType}-${label}`} style={pageStyles.legendRow}>
+                    <View
+                      style={[
+                        pageStyles.legendDot,
+                        { backgroundColor: selectedPieMeta.colors[index] }
+                      ]}
+                    />
+                    <Text style={pageStyles.legendLabel}>{label}</Text>
+                    <Text style={pageStyles.legendValue}>
+                      {value} ({share}%)
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+
+            <Pressable style={pageStyles.backToDashboardBtn} onPress={closeGraphView}>
+              <Text style={pageStyles.backToDashboardText}>Back to Dashboard</Text>
+            </Pressable>
+          </View>
         </View>
       </View>
     );
@@ -1536,72 +1788,304 @@ export default function DashboardHomeTab({
     );
   }
 
-  if (false && homeView === "lhCboActivity") {
-    const isProducer = activityType === "Goat Rearing";
-    const isNonFarm = activityType === "Tailoring";
-    const isIntegrated = activityType === "Vegetable Farming";
-    const isCustomHiring = activityType === "Poultry";
+  if (homeView === "lhCboActivity") {
+    return (
+      <View style={pageStyles.screen}>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <View style={[pageStyles.frame, lhcboStyles.frame]}>
+            <View style={pageStyles.topRow}>
+              <View style={pageStyles.imageCard}>
+                <Text style={pageStyles.imageText}>CRP{"\n"}Image</Text>
+              </View>
+              <View style={pageStyles.infoCard}>
+                <Text style={pageStyles.infoLine}>CRP ID: {user.identity || "CRP-XXX"}</Text>
+                <Text style={pageStyles.infoLine}>Name: {user.name || "CRP User"}</Text>
+              </View>
+            </View>
+
+            <View style={lhcboStyles.formCard}>
+              <View style={lhcboStyles.row}>
+                <Text style={lhcboStyles.label}>Type of Livelihood CBO</Text>
+                <CycleDropdown
+                  value={lhCboType}
+                  options={livelihoodCboTypeOptions}
+                  style={lhcboStyles.dropdown}
+                  onChange={setLhCboType}
+                />
+              </View>
+
+              <View style={lhcboStyles.row}>
+                <Text style={lhcboStyles.label}>Name of the Livelihood CBO</Text>
+                <CycleDropdown
+                  value={selectedLhCboName}
+                  options={livelihoodCboNameOptions}
+                  style={lhcboStyles.dropdown}
+                  onChange={setSelectedLhCboName}
+                />
+              </View>
+
+              <View style={lhcboStyles.row}>
+                <Text style={lhcboStyles.label}>Activity of the LH-CBO</Text>
+                <CycleDropdown
+                  value={selectedLhCboActivity}
+                  options={livelihoodCboActivityOptions}
+                  style={lhcboStyles.dropdown}
+                  onChange={setSelectedLhCboActivity}
+                />
+              </View>
+
+              <View style={lhcboStyles.row}>
+                <Text style={lhcboStyles.label}>Longitude of Activity*</Text>
+                <TextInput
+                  style={lhcboStyles.input}
+                  editable={false}
+                  value={activityCoordinates ? activityCoordinates.longitude.toFixed(6) : "--"}
+                />
+              </View>
+
+              <View style={lhcboStyles.row}>
+                <Text style={lhcboStyles.label}>Latitude of Activity*</Text>
+                <TextInput
+                  style={lhcboStyles.input}
+                  editable={false}
+                  value={activityCoordinates ? activityCoordinates.latitude.toFixed(6) : "--"}
+                />
+              </View>
+
+              <View style={lhcboStyles.row}>
+                <Text style={lhcboStyles.label}>Latest Image of the Activity*</Text>
+                <Pressable style={lhcboStyles.uploadBtn} onPress={handleUploadLhCboImage}>
+                  <Text style={lhcboStyles.uploadBtnText}>Upload Image</Text>
+                </Pressable>
+              </View>
+
+              <Text style={lhcboStyles.previewHeading}>Previous & Latest Uploaded Images</Text>
+              <View style={lhcboStyles.previewRow}>
+                <Pressable
+                  style={lhcboStyles.navBtn}
+                  onPress={() =>
+                    setLhCboImageIndex((prev) =>
+                      lhCboImages.length ? (prev - 1 + lhCboImages.length) % lhCboImages.length : 0
+                    )
+                  }
+                >
+                  <Text style={lhcboStyles.navBtnText}>{"<"}</Text>
+                </Pressable>
+
+                <View style={lhcboStyles.previewBox}>
+                  {activeLhCboImage ? (
+                    <Image source={{ uri: activeLhCboImage }} style={lhcboStyles.previewImage} />
+                  ) : (
+                    <Text style={lhcboStyles.previewText}>Images of Activities of the SHG Member</Text>
+                  )}
+                </View>
+
+                <Pressable
+                  style={lhcboStyles.navBtn}
+                  onPress={() =>
+                    setLhCboImageIndex((prev) =>
+                      lhCboImages.length ? (prev + 1) % lhCboImages.length : 0
+                    )
+                  }
+                >
+                  <Text style={lhcboStyles.navBtnText}>{">"}</Text>
+                </Pressable>
+              </View>
+
+              <View style={lhcboStyles.radiusRow}>
+                <View
+                  style={[
+                    lhcboStyles.geoDot,
+                    locationPromptRequired || distanceToMember === null
+                      ? lhcboStyles.geoDotIdle
+                      : isWithin50Meters
+                      ? lhcboStyles.geoDotGreen
+                      : lhcboStyles.geoDotRed
+                  ]}
+                />
+                <Text style={lhcboStyles.radiusText}>
+                  {locationPromptRequired
+                    ? "Enable location permission for 50m radius check."
+                    : distanceToMember === null
+                    ? "If CRP reaches 50m radius, indicator turns green, else red."
+                    : isWithin50Meters
+                    ? `Within 50m (${distanceToMember}m) - GREEN`
+                    : `Outside 50m (${distanceToMember}m) - RED`}
+                </Text>
+              </View>
+
+              <View style={lhcboStyles.actionRow}>
+                <Pressable style={lhcboStyles.checkBtn} onPress={() => checkRadiusDistance(false)}>
+                  <Text style={lhcboStyles.checkBtnText}>
+                    {isDistanceLoading ? "Checking..." : "Check 50m Radius"}
+                  </Text>
+                </Pressable>
+                <Pressable style={lhcboStyles.saveBtn} onPress={handleLhCboSaveAndNext}>
+                  <Text style={lhcboStyles.saveBtnText}>Save & Next</Text>
+                </Pressable>
+              </View>
+            </View>
+
+            <Pressable style={wrStyles.backBtn} onPress={onOpenNewEnrolment}>
+              <Text style={wrStyles.backBtnText}>Back to Selection</Text>
+            </Pressable>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
+  if (homeView === "lhCboStatusGuide") {
+    const selectedRuleTextByType = {
+      "Producers Group (PG)":
+        "- If Producers Group Activity is selected, further details will be shown on Page 1B.8A",
+      "Non-Farm Collective (NFC)":
+        "- If Non-Farm Collective Activity is selected, further details will be shown on Page 1B.8B",
+      "Integrated Farming Cluster Collective (IFC)":
+        "- If Integrated Farming Cluster Activity is selected, further details will be shown on Page 1B.8C",
+      "Custom Hiring Center Collective (CHC)":
+        "- If Custom Hiring Center Activity is selected, further details will be shown on Page 1B.8D"
+    };
+    const selectedRuleText =
+      selectedRuleTextByType[lhCboType] || selectedRuleTextByType["Producers Group (PG)"];
 
     return (
       <View style={pageStyles.screen}>
-        <View style={pageStyles.frame}>
-          <View style={lhStyles.headerCard}>
-            <Text style={lhStyles.headerLine}>LH CBO Name: {lhCboName || "xxxxxxxxx xxxx"}</Text>
-            <Text style={lhStyles.headerLine}>GP/VC Name: {user.gpVcName || "xxxxxxxxxx"}</Text>
+        <View style={[pageStyles.frame, lhGuideStyles.frame]}>
+          <View style={lhGuideStyles.headerCard}>
+            <Text style={lhGuideStyles.headerLine}>LH CBO Name: {selectedLhCboName}</Text>
+            <Text style={lhGuideStyles.headerLine}>GP/VC Name: {user.gpVcName || "GP-A"}</Text>
           </View>
 
-          <View style={lhStyles.dropdownRow}>
-            <Text style={lhStyles.dropdownLabel}>Livelihood Activity:</Text>
-            <View style={lhStyles.dropdownValueBox}>
-              <Text style={lhStyles.dropdownValue}>{activityType}</Text>
-              <Text style={lhStyles.dropdownArrow}>v</Text>
+          <View style={lhGuideStyles.formCard}>
+            <View style={lhGuideStyles.dropdownRow}>
+              <Text style={lhGuideStyles.dropdownLabel}>Livelihood Activity:</Text>
+              <View style={lhGuideStyles.dropdownValueBox}>
+                <Text style={lhGuideStyles.dropdownValue}>{selectedLhCboActivity}</Text>
+                <Text style={lhGuideStyles.dropdownArrow}>v</Text>
+              </View>
+            </View>
+            <View style={lhGuideStyles.dropdownRow}>
+              <Text style={lhGuideStyles.dropdownLabel}>Category:</Text>
+              <View style={lhGuideStyles.dropdownValueBox}>
+                <Text style={lhGuideStyles.dropdownValue}>{lhCboType}</Text>
+                <Text style={lhGuideStyles.dropdownArrow}>v</Text>
+              </View>
+            </View>
+
+            <View style={lhGuideStyles.rulesCard}>
+              <Text style={[lhGuideStyles.ruleLine, lhGuideStyles.ruleLineActive]}>
+                {selectedRuleText}
+              </Text>
+            </View>
+
+            <View style={lhGuideStyles.footerRow}>
+              <View style={[lhGuideStyles.geoDot, lhGuideStyles.geoDotRed]} />
+              <Pressable style={lhGuideStyles.saveBtn} onPress={handleLhCboGuideSaveAndNext}>
+                <Text style={lhGuideStyles.saveBtnText}>Save & Next</Text>
+              </Pressable>
             </View>
           </View>
 
-          <View style={lhStyles.dropdownRow}>
-            <Text style={lhStyles.dropdownLabel}>Category:</Text>
-            <View style={lhStyles.dropdownValueBox}>
-              <Text style={lhStyles.dropdownValue}>{subCategory}</Text>
-              <Text style={lhStyles.dropdownArrow}>v</Text>
-            </View>
-          </View>
-
-          <View style={lhStyles.notesCard}>
-            <Text style={lhStyles.noteLine}>
-              • If <Text style={isProducer ? lhStyles.noteHighlight : lhStyles.notePlain}>Producers Group Activity</Text> is selected, then further details will be shown on Page 18.8A
-            </Text>
-            <Text style={lhStyles.noteDivider}>-------------------------------</Text>
-            <Text style={lhStyles.noteLine}>
-              • If <Text style={isNonFarm ? lhStyles.noteHighlight : lhStyles.notePlain}>Non-Farm Collective Activity</Text> is selected, then further details will be shown on Page 18.8B
-            </Text>
-            <Text style={lhStyles.noteDivider}>-------------------------------</Text>
-            <Text style={lhStyles.noteLine}>
-              • If <Text style={isIntegrated ? lhStyles.noteHighlight : lhStyles.notePlain}>Integrated Farming Cluster Activity</Text> is selected, then further details will be shown on Page 18.8C
-            </Text>
-            <Text style={lhStyles.noteDivider}>-------------------------------</Text>
-            <Text style={lhStyles.noteLine}>
-              • If <Text style={isCustomHiring ? lhStyles.noteHighlight : lhStyles.notePlain}>Custom Hiring Center Activity</Text> is selected, then further details will be shown on Page 18.8D
-            </Text>
-            <Text style={lhStyles.noteDivider}>-------------------------------</Text>
-          </View>
-
-          <View style={lhStyles.footerRow}>
-            <View
-              style={[
-                lhStyles.geoDot,
-                distanceToMember !== null && distanceToMember <= 50
-                  ? lhStyles.geoDotGreen
-                  : lhStyles.geoDotRed
-              ]}
-            />
-            <Pressable style={lhStyles.saveBtn} onPress={handleLhCboSaveAndNext}>
-              <Text style={lhStyles.saveBtnText}>Save & Next</Text>
-            </Pressable>
-          </View>
-
-          <Pressable style={wrStyles.backBtn} onPress={() => onOpenShgMember()}>
-            <Text style={wrStyles.backBtnText}>Back to SHG Member</Text>
+          <Pressable style={lhGuideStyles.backBtn} onPress={() => onOpenUpdateData("lhCboActivity")}>
+            <Text style={lhGuideStyles.backBtnText}>Back</Text>
           </Pressable>
+        </View>
+      </View>
+    );
+  }
+
+  if (
+    homeView === "lhCboStatusPg" ||
+    homeView === "lhCboStatusNfc" ||
+    homeView === "lhCboStatusIfc" ||
+    homeView === "lhCboStatusChc"
+  ) {
+    const isChcView = homeView === "lhCboStatusChc";
+    const titleMetaMap = {
+      lhCboStatusPg: { page: "Page:1B.8A", red: "Producers Group", tail: " Activity Status" },
+      lhCboStatusNfc: { page: "Page:1B.8B", red: "Non-Farm Collective", tail: " Activity Status" },
+      lhCboStatusIfc: {
+        page: "Page:1B.8C",
+        red: "Integrated Farming Cluster",
+        tail: " Activity Status"
+      },
+      lhCboStatusChc: {
+        page: "Page:1B.8D",
+        red: "Custom Hiring Center",
+        tail: " Activity Status"
+      }
+    };
+    const headerNameMap = {
+      lhCboStatusPg: "PG Name",
+      lhCboStatusNfc: "NFC Name",
+      lhCboStatusIfc: "IFC Name",
+      lhCboStatusChc: "CHC Name"
+    };
+    const buttonLabelMap = {
+      lhCboStatusPg: ["Activity Profile", "Financial Status", "Income\nStatus"],
+      lhCboStatusNfc: ["Activity Profile", "Financial Status", "Income\nStatus"],
+      lhCboStatusIfc: ["Activity Profile", "Financial Status", "Income\nStatus"]
+    };
+    const activityRouteMap = {
+      lhCboStatusPg: "lhActivityFarm",
+      lhCboStatusNfc: "lhActivityNonFarm",
+      lhCboStatusIfc: "lhActivityFarm"
+    };
+
+    return (
+      <View style={pageStyles.screen}>
+        <View style={[pageStyles.frame, lhcboStatusStyles.frame]}>
+          <Text style={lhcboStatusStyles.titleText}>
+            <Text style={lhcboStatusStyles.titlePage}>{titleMetaMap[homeView].page} </Text>
+            <Text style={lhcboStatusStyles.titleRed}>{titleMetaMap[homeView].red}</Text>
+            <Text style={lhcboStatusStyles.titlePage}>{titleMetaMap[homeView].tail}</Text>
+          </Text>
+          <View style={lhcboStatusStyles.headerCard}>
+            <Text style={lhcboStatusStyles.headerLine}>
+              {headerNameMap[homeView]}: {selectedLhCboName}
+            </Text>
+            <Text style={lhcboStatusStyles.headerLine}>GP/VC Name: {user.gpVcName || "GP-A"}</Text>
+          </View>
+
+          <View style={lhcboStatusStyles.contentCard}>
+            {isChcView ? (
+              <View style={lhcboStatusStyles.chcPlaceholder} />
+            ) : (
+              <View style={lhcboStatusStyles.buttonStack}>
+                <Pressable
+                  style={lhcboStatusStyles.blockBtn}
+                  onPress={() => onOpenUpdateData(activityRouteMap[homeView])}
+                >
+                  <Text style={lhcboStatusStyles.blockBtnText}>{buttonLabelMap[homeView][0]}</Text>
+                </Pressable>
+                <Pressable
+                  style={lhcboStatusStyles.blockBtn}
+                  onPress={() => onOpenUpdateData("technicalSupportFinancial")}
+                >
+                  <Text style={lhcboStatusStyles.blockBtnText}>{buttonLabelMap[homeView][1]}</Text>
+                </Pressable>
+                <Pressable
+                  style={lhcboStatusStyles.blockBtn}
+                  onPress={() => onOpenUpdateData("lhIncome")}
+                >
+                  <Text style={lhcboStatusStyles.blockBtnText}>{buttonLabelMap[homeView][2]}</Text>
+                </Pressable>
+              </View>
+            )}
+
+            <View style={lhcboStatusStyles.footerRow}>
+              <View
+                style={[
+                  lhcboStatusStyles.geoDot,
+                  isWithin50Meters ? lhcboStatusStyles.geoDotGreen : lhcboStatusStyles.geoDotRed
+                ]}
+              />
+              <Pressable style={lhcboStatusStyles.saveBtn} onPress={() => onOpenUpdateData("technicalSupport")}>
+                <Text style={lhcboStatusStyles.saveBtnText}>Save</Text>
+              </Pressable>
+            </View>
+          </View>
         </View>
       </View>
     );
@@ -2273,7 +2757,7 @@ export default function DashboardHomeTab({
           <View style={pageStyles.metricCompactCard}>
             <View style={pageStyles.metricCompactLeft}>
               <Text style={pageStyles.metricCompactLabel}>SHG Member Assigned</Text>
-              <Pressable style={pageStyles.graphPill}>
+              <Pressable style={pageStyles.graphPill} onPress={() => handleGraphPress("members")}>
                 <Text style={pageStyles.graphText}>Graph</Text>
               </Pressable>
             </View>
@@ -2283,7 +2767,7 @@ export default function DashboardHomeTab({
           <View style={pageStyles.metricCompactCard}>
             <View style={pageStyles.metricCompactLeft}>
               <Text style={pageStyles.metricCompactLabel}>Total Visit Placed in the Last 30 days</Text>
-              <Pressable style={pageStyles.graphPill}>
+              <Pressable style={pageStyles.graphPill} onPress={() => handleGraphPress("visits")}>
                 <Text style={pageStyles.graphText}>Graph</Text>
               </Pressable>
             </View>
@@ -2293,7 +2777,7 @@ export default function DashboardHomeTab({
           <View style={pageStyles.metricCompactCard}>
             <View style={pageStyles.metricCompactLeft}>
               <Text style={pageStyles.metricCompactLabel}>Honorarium Received</Text>
-              <Pressable style={pageStyles.graphPill}>
+              <Pressable style={pageStyles.graphPill} onPress={() => handleGraphPress("honorarium")}>
                 <Text style={pageStyles.graphText}>Graph</Text>
               </Pressable>
             </View>
@@ -2459,6 +2943,98 @@ const pageStyles = StyleSheet.create({
     paddingVertical: 6
   },
   graphText: { color: "#dbeafe", fontSize: 11, fontWeight: "700" },
+  graphPageCard: {
+    borderWidth: 1,
+    borderColor: "#d4a017",
+    backgroundColor: "#fef3c7",
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    gap: 10
+  },
+  graphPageTitle: {
+    color: "#111827",
+    fontSize: 16,
+    fontWeight: "800",
+    textAlign: "center"
+  },
+  piePreviewWrap: {
+    borderWidth: 1,
+    borderColor: "#fde68a",
+    borderRadius: 10,
+    backgroundColor: "#fffbeb",
+    minHeight: 200,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden"
+  },
+  piePreviewImage: {
+    width: "100%",
+    height: 200
+  },
+  pieFallbackWrap: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 14
+  },
+  pieFallbackText: {
+    color: "#92400e",
+    fontSize: 13,
+    fontWeight: "800"
+  },
+  pieFallbackSubText: {
+    color: "#78350f",
+    fontSize: 11,
+    fontWeight: "600",
+    marginTop: 3
+  },
+  legendWrap: {
+    backgroundColor: "#ffffff",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    gap: 7
+  },
+  legendRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8
+  },
+  legendDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6
+  },
+  legendLabel: {
+    flex: 1,
+    color: "#1f2937",
+    fontSize: 12,
+    fontWeight: "700"
+  },
+  legendValue: {
+    color: "#0f172a",
+    fontSize: 12,
+    fontWeight: "800"
+  },
+  backToDashboardBtn: {
+    alignSelf: "center",
+    minWidth: 160,
+    backgroundColor: "#1e3a8a",
+    borderWidth: 1,
+    borderColor: "#1e40af",
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 9,
+    paddingHorizontal: 12
+  },
+  backToDashboardText: {
+    color: "#ffffff",
+    fontSize: 12,
+    fontWeight: "800"
+  },
   quickActionsCard: {
     borderWidth: 1,
     borderColor: "#d0dae8",
@@ -3770,6 +4346,426 @@ const txnStyles = StyleSheet.create({
   backBtnText: {
     color: "#ffffff",
     fontSize: 12,
+    fontWeight: "800"
+  }
+});
+
+const lhcboStyles = StyleSheet.create({
+  frame: {
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#94a3b8",
+    backgroundColor: "#e2e8f0",
+    padding: 10,
+    gap: 10
+  },
+  formCard: {
+    borderWidth: 1,
+    borderColor: "#9ca3af",
+    backgroundColor: "#f3f4f6",
+    padding: 10,
+    gap: 6
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8
+  },
+  label: {
+    flex: 1,
+    color: "#111827",
+    fontSize: 12,
+    fontWeight: "700"
+  },
+  dropdown: {
+    width: 174
+  },
+  input: {
+    width: 174,
+    borderWidth: 1,
+    borderColor: "#6b7280",
+    borderRadius: 4,
+    backgroundColor: "#e5e7eb",
+    color: "#1f2937",
+    fontSize: 11,
+    fontWeight: "700",
+    paddingHorizontal: 8,
+    paddingVertical: 6
+  },
+  uploadBtn: {
+    width: 174,
+    backgroundColor: "#dbeafe",
+    borderWidth: 1,
+    borderColor: "#3b82f6",
+    borderRadius: 4,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 8
+  },
+  uploadBtnText: {
+    color: "#1e3a8a",
+    fontSize: 11,
+    fontWeight: "800"
+  },
+  helpText: {
+    color: "#2563eb",
+    fontSize: 12,
+    lineHeight: 16
+  },
+  autoText: {
+    color: "#dc2626",
+    fontWeight: "800"
+  },
+  previewHeading: {
+    color: "#111827",
+    fontSize: 13,
+    fontWeight: "900",
+    textDecorationLine: "underline",
+    marginTop: 2
+  },
+  previewRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 6
+  },
+  navBtn: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#3b82f6",
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  navBtnText: {
+    color: "#ffffff",
+    fontSize: 12,
+    fontWeight: "900"
+  },
+  previewBox: {
+    flex: 1,
+    minHeight: 140,
+    borderWidth: 1,
+    borderColor: "#3159a5",
+    backgroundColor: "#4f76c4",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 8
+  },
+  previewImage: {
+    width: "100%",
+    height: 140
+  },
+  previewText: {
+    color: "#f8fafc",
+    textAlign: "center",
+    fontSize: 14,
+    lineHeight: 20
+  },
+  radiusRow: {
+    marginTop: 4,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8
+  },
+  geoDot: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 1
+  },
+  geoDotIdle: {
+    backgroundColor: "#94a3b8",
+    borderColor: "#64748b"
+  },
+  geoDotGreen: {
+    backgroundColor: "#22c55e",
+    borderColor: "#15803d"
+  },
+  geoDotRed: {
+    backgroundColor: "#ef4444",
+    borderColor: "#b91c1c"
+  },
+  radiusText: {
+    flex: 1,
+    color: "#1e40af",
+    fontSize: 11,
+    fontWeight: "700"
+  },
+  actionRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 4
+  },
+  checkBtn: {
+    flex: 1,
+    backgroundColor: "#1d4ed8",
+    borderRadius: 6,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 9
+  },
+  checkBtnText: {
+    color: "#ffffff",
+    fontSize: 12,
+    fontWeight: "800"
+  },
+  saveBtn: {
+    flex: 1,
+    backgroundColor: "#f97316",
+    borderRadius: 6,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 9
+  },
+  saveBtnText: {
+    color: "#ffffff",
+    fontSize: 12,
+    fontWeight: "800"
+  }
+});
+
+const lhGuideStyles = StyleSheet.create({
+  frame: {
+    gap: 8,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#a5b4c8",
+    backgroundColor: "#e2e8f0",
+    padding: 10
+  },
+  headerCard: {
+    backgroundColor: "#6b7280",
+    borderWidth: 1,
+    borderColor: "#4b5563",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    gap: 2
+  },
+  headerLine: {
+    color: "#111827",
+    fontSize: 12,
+    fontWeight: "800"
+  },
+  formCard: {
+    borderWidth: 1,
+    borderColor: "#a8b2c3",
+    backgroundColor: "#d9dee6",
+    padding: 8,
+    gap: 8
+  },
+  dropdownRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8
+  },
+  dropdownLabel: {
+    width: 118,
+    color: "#111827",
+    fontSize: 12,
+    fontWeight: "700"
+  },
+  dropdownValueBox: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#9ca3af",
+    backgroundColor: "#ffffff",
+    borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center"
+  },
+  dropdownValue: {
+    color: "#111827",
+    fontSize: 11,
+    fontWeight: "700"
+  },
+  dropdownArrow: {
+    color: "#f97316",
+    fontWeight: "900"
+  },
+  rulesCard: {
+    borderWidth: 1,
+    borderColor: "#9ca3af",
+    backgroundColor: "#e5e7eb",
+    padding: 8,
+    gap: 4
+  },
+  ruleLine: {
+    color: "#111827",
+    fontSize: 12,
+    lineHeight: 24,
+    fontWeight: "800"
+  },
+  ruleLineActive: {
+    color: "#dc2626"
+  },
+  footerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 2
+  },
+  geoDot: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1
+  },
+  geoDotGreen: {
+    backgroundColor: "#22c55e",
+    borderColor: "#15803d"
+  },
+  geoDotRed: {
+    backgroundColor: "#ef4444",
+    borderColor: "#b91c1c"
+  },
+  saveBtn: {
+    flex: 1,
+    backgroundColor: "#f97316",
+    borderWidth: 1,
+    borderColor: "#c2410c",
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10
+  },
+  saveBtnText: {
+    color: "#ffffff",
+    fontSize: 13,
+    fontWeight: "800"
+  },
+  backBtn: {
+    alignSelf: "flex-end",
+    backgroundColor: "#1f2937",
+    borderWidth: 1,
+    borderColor: "#111827",
+    borderRadius: 6,
+    minWidth: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 6,
+    paddingHorizontal: 10
+  },
+  backBtnText: {
+    color: "#ffffff",
+    fontSize: 12,
+    fontWeight: "800"
+  }
+});
+
+const lhcboStatusStyles = StyleSheet.create({
+  frame: {
+    gap: 8,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#9ca3af",
+    backgroundColor: "#e5e7eb",
+    padding: 10
+  },
+  titleText: {
+    fontSize: 15,
+    fontWeight: "900",
+    textAlign: "left"
+  },
+  titlePage: {
+    color: "#111827"
+  },
+  titleRed: {
+    color: "#dc2626"
+  },
+  headerCard: {
+    backgroundColor: "#6b7280",
+    borderWidth: 1,
+    borderColor: "#4b5563",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    gap: 2
+  },
+  headerLine: {
+    color: "#111827",
+    fontSize: 12,
+    fontWeight: "800"
+  },
+  contentCard: {
+    borderWidth: 1,
+    borderColor: "#7f8794",
+    backgroundColor: "#e5e7eb",
+    minHeight: 470,
+    paddingVertical: 18,
+    paddingHorizontal: 10,
+    justifyContent: "space-between"
+  },
+  buttonStack: {
+    gap: 34,
+    marginTop: 10
+  },
+  blockBtn: {
+    alignSelf: "center",
+    width: "74%",
+    backgroundColor: "#4a75c6",
+    borderWidth: 1,
+    borderColor: "#3159a5",
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    shadowColor: "#334155",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4
+  },
+  blockBtnText: {
+    color: "#f8fafc",
+    fontSize: 18,
+    fontWeight: "800"
+  },
+  chcPlaceholder: {
+    alignSelf: "center",
+    width: 136,
+    height: 176,
+    borderWidth: 1.5,
+    borderColor: "#111827",
+    backgroundColor: "#e5e7eb",
+    marginTop: 90
+  },
+  footerRow: {
+    width: "82%",
+    alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10
+  },
+  geoDot: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 1
+  },
+  geoDotGreen: {
+    backgroundColor: "#22c55e",
+    borderColor: "#15803d"
+  },
+  geoDotRed: {
+    backgroundColor: "#ef4444",
+    borderColor: "#b91c1c"
+  },
+  saveBtn: {
+    flex: 1,
+    backgroundColor: "#f97316",
+    borderWidth: 1,
+    borderColor: "#c2410c",
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 11
+  },
+  saveBtnText: {
+    color: "#ffffff",
+    fontSize: 14,
     fontWeight: "800"
   }
 });

@@ -1,4 +1,5 @@
 import * as Location from "expo-location";
+import { Platform } from "react-native";
 import { metersBetween } from "./location";
 import { GEOFENCE_LOCATIONS, GEOFENCE_SETTINGS, DEFAULT_LOCATION } from "../constants/appData";
 
@@ -7,8 +8,25 @@ import { GEOFENCE_LOCATIONS, GEOFENCE_SETTINGS, DEFAULT_LOCATION } from "../cons
  * @returns {Promise<boolean>} - Returns true if permission granted
  */
 export async function requestLocationPermission() {
-  const { status } = await Location.requestForegroundPermissionsAsync();
-  return status === "granted";
+  if (Platform.OS === "web") {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      return false;
+    }
+    return true;
+  }
+
+  const current = await Location.getForegroundPermissionsAsync();
+  if (current.status === "granted") {
+    return true;
+  }
+
+  // Avoid re-prompt loops when system won't allow asking again.
+  if (current.canAskAgain === false) {
+    return false;
+  }
+
+  const asked = await Location.requestForegroundPermissionsAsync();
+  return asked.status === "granted";
 }
 
 /**
@@ -17,6 +35,27 @@ export async function requestLocationPermission() {
  */
 export async function getCurrentLocation() {
   try {
+    if (Platform.OS === "web") {
+      if (typeof navigator === "undefined" || !navigator.geolocation) {
+        return null;
+      }
+      if (typeof window !== "undefined" && window.isSecureContext === false) {
+        return null;
+      }
+      const webCoords = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 0
+        });
+      });
+      return {
+        latitude: webCoords.coords.latitude,
+        longitude: webCoords.coords.longitude,
+        accuracy: webCoords.coords.accuracy || 0
+      };
+    }
+
     const hasPermission = await requestLocationPermission();
     if (!hasPermission) {
       return null;
@@ -32,6 +71,22 @@ export async function getCurrentLocation() {
       accuracy: location.coords.accuracy || 0
     };
   } catch (error) {
+    // Native fallback when precise live position call fails.
+    if (Platform.OS !== "web") {
+      try {
+        const lastKnown = await Location.getLastKnownPositionAsync();
+        if (lastKnown?.coords) {
+          return {
+            latitude: lastKnown.coords.latitude,
+            longitude: lastKnown.coords.longitude,
+            accuracy: lastKnown.coords.accuracy || 0
+          };
+        }
+      } catch (fallbackError) {
+        console.error("Error getting last known location:", fallbackError);
+      }
+    }
+
     console.error("Error getting location:", error);
     return null;
   }
