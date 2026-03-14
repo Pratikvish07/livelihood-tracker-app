@@ -1,18 +1,27 @@
 {
   "expo": {
-    "name": "SRSApp Prototype",
-    "slug": "srsapp-prototype",
+    "name": "Livelihood Tracker",
+    "slug": "livelihood-tracker",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "icon": "./assets/branding/livelihood-tracker-icon.png",
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "icon": "./assets/branding/livelihood-tracker-icon.png"
     },
-    "android": {},
-    "web": {},
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/branding/livelihood-tracker-icon.png",
+        "backgroundColor": "#f5f0df"
+      }
+    },
+    "web": {
+      "favicon": "./assets/branding/livelihood-tracker-icon.png"
+    },
     "plugins": [
       "expo-asset"
     ]

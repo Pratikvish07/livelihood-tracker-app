@@ -18,7 +18,7 @@ export const GEOFENCE_SETTINGS = {
   showMapOnLogin: true
 };
 
-export const LANGUAGES = [];
+export const LANGUAGES = ["English", "Bengali", "Assamese", "Hindi"];
 export const BLOCKS = [];
 export const VILLAGES = [];
 

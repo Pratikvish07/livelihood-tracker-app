@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Alert, SafeAreaView, ScrollView, View } from "react-native";
 import BottomNav from "../components/BottomNav";
+import TrlmHeader from "../components/TrlmHeader";
 import DashboardHomeTab from "../screens/tabs/DashboardHomeTab.js";
 import LoanTab from "../screens/tabs/LoanTab";
 import ProfileTab from "../screens/tabs/ProfileTab";
@@ -19,7 +20,7 @@ import {
   isLokosValid,
   isPasswordStrong
 } from "../utils/appCalculations";
-import { submitCrpSignup } from "../services/masterApi";
+import { loginUser, submitCrpSignup } from "../services/masterApi";
 
 export default function AppRouter() {
   const [step, setStep] = useState("splash");
@@ -71,6 +72,8 @@ export default function AppRouter() {
 
   const [alerts, setAlerts] = useState([]);
   const [signupSubmitting, setSignupSubmitting] = useState(false);
+  const [signupResponse, setSignupResponse] = useState({ type: "", message: "" });
+  const [loginSubmitting, setLoginSubmitting] = useState(false);
   const [pendingApprovalCrpId, setPendingApprovalCrpId] = useState("");
 
   const [activities] = useState([]);
@@ -93,10 +96,61 @@ export default function AppRouter() {
   }, []);
 
   const t = (text) => translateText(language, text);
+  const homeViewTitles = {
+    dashboard: {
+      title: "Field Dashboard",
+      subtitle: "Review your village activity, claims, and pending work."
+    },
+    workingReport: {
+      title: "Working Report",
+      subtitle: "Track visits, honorarium, and monthly report submission."
+    },
+    newEnrolment: {
+      title: "New Enrolment",
+      subtitle: "Capture beneficiary onboarding details in the field."
+    },
+    shgMember: {
+      title: "SHG Member Visit",
+      subtitle: "Update member support details with live location checks."
+    },
+    lhCboActivity: {
+      title: "LH-CBO Activity",
+      subtitle: "Record activity updates, evidence, and geo-validated visits."
+    }
+  };
   const extractCrpId = (value) => {
     const text = typeof value === "string" ? value : "";
     const match = text.match(/CRP-\d+/i);
     return match ? match[0].toUpperCase() : "";
+  };
+
+  const extractIdentity = (payload, fallbackIdentity) => {
+    const message = typeof payload?.message === "string" ? payload.message : "";
+
+    return (
+      payload?.crpId ||
+      payload?.CRPId ||
+      payload?.masterId ||
+      payload?.MasterId ||
+      payload?.userId ||
+      payload?.UserId ||
+      payload?.id ||
+      payload?.Id ||
+      extractCrpId(message) ||
+      fallbackIdentity
+    );
+  };
+
+  const isApprovalPendingStatus = (payload) => {
+    const statusText = String(
+      payload?.status || payload?.approvalStatus || payload?.message || ""
+    ).toLowerCase();
+
+    return (
+      statusText.includes("pending") ||
+      statusText.includes("awaiting approval") ||
+      statusText.includes("approval")
+    );
   };
 
   const dashboardMetrics = useMemo(() => {
@@ -118,7 +172,7 @@ export default function AppRouter() {
     };
   }, [activities, workingReport.amountReceived]);
 
-  const onLogin = () => {
+  const onLogin = async () => {
     if (!loginForm.identity || !loginForm.password) {
       Alert.alert(t("Login error"), t("Please enter Master ID/CRP ID and Password."));
       return;
@@ -135,13 +189,62 @@ export default function AppRouter() {
       return;
     }
 
-    Alert.alert(
-      t("Login API required"),
-      t("Dashboard access is blocked until the real login and approval-check API is connected.")
-    );
+    const selectedIdType = loginForm.idType || "CRP ID";
+    if (selectedIdType !== "CRP ID") {
+      Alert.alert(
+        t("Login error"),
+        t("Master ID login API is not connected yet. Please use CRP ID for now.")
+      );
+      return;
+    }
+
+    const identity = loginForm.identity.trim();
+    const payload = {
+      crpId: identity,
+      passwordhash: loginForm.password
+    };
+
+    try {
+      setLoginSubmitting(true);
+      const response = await loginUser(payload);
+
+      if (isApprovalPendingStatus(response)) {
+        Alert.alert(
+          t("Approval pending"),
+          t("Your account is still waiting for approval. Please try again after approval is completed.")
+        );
+        return;
+      }
+
+      const resolvedIdentity = extractIdentity(response, identity);
+      const resolvedRole =
+        response?.role || response?.userRole || response?.designation || detectRole(resolvedIdentity);
+      const resolvedName =
+        response?.name || response?.fullName || response?.userName || user.name || identity;
+
+      setUser({
+        identity: resolvedIdentity,
+        role: resolvedRole,
+        name: resolvedName,
+        block: response?.block || response?.blockName || user.block || "",
+        gpVcName: response?.gpVcName || response?.gpName || user.gpVcName || "",
+        villageName:
+          response?.villageName || response?.village || user.villageName || "",
+        language
+      });
+
+      setActiveTab("Home");
+      setHomeView("dashboard");
+      setStep("dashboard");
+    } catch (error) {
+      Alert.alert(t("Login error"), error.message || t("Unable to login right now."));
+    } finally {
+      setLoginSubmitting(false);
+    }
   };
 
   const onSignup = async (generatedCrpId, currentLocation) => {
+    setSignupResponse({ type: "", message: "" });
     if (!signupForm.name.trim()) {
       Alert.alert(t("Validation"), t("Name is required."));
       return;
@@ -198,9 +301,10 @@ export default function AppRouter() {
 
     const payload = {
       fullName: signupForm.name.trim(),
-      aadhaarNo: signupForm.uid,
-      lokOSId: signupForm.lokosId,
+      aadhaarNo: signupForm.uid.trim(),
+      lokoSId: signupForm.lokosId.trim(),
       villageId: Number(signupForm.villageId) || 0,
+      blockId: Number(signupForm.blockId) || 0,
       contactNo: signupForm.contactNo,
       emailId: signupForm.email,
       password: signupForm.password,
@@ -247,16 +351,28 @@ export default function AppRouter() {
         password: ""
       }));
 
-      Alert.alert(
-        t("Registration submitted"),
+      const signupSuccessMessage =
         extractCrpId(responseMessage)
           ? `${t("Generated CRP ID")}: ${createdIdentity}\n${t("Please wait for admin approval before logging in.")}`
-          : responseMessage || `${t("Generated CRP ID")}: ${createdIdentity}`
+          : responseMessage || `${t("Generated CRP ID")}: ${createdIdentity}`;
+
+      setSignupResponse({
+        type: "success",
+        message: signupSuccessMessage
+      });
+
+      Alert.alert(
+        t("Registration submitted"),
+        signupSuccessMessage
       );
       setHomeView("dashboard");
       setActiveTab("Home");
       setStep("login");
     } catch (error) {
+      setSignupResponse({
+        type: "error",
+        message: error.message || t("Unable to create CRP ID.")
+      });
       Alert.alert(t("Signup error"), error.message || t("Unable to create CRP ID."));
     } finally {
       setSignupSubmitting(false);
@@ -321,10 +437,44 @@ export default function AppRouter() {
   };
 
   const onLogout = () => {
-    setStep("login");
-    setHomeView("dashboard");
-    setActiveTab("Home");
+    Alert.alert(t("Logout"), t("Are you sure you want to logout from this session?"), [
+      {
+        text: t("Cancel"),
+        style: "cancel"
+      },
+      {
+        text: t("Logout"),
+        style: "destructive",
+        onPress: () => {
+          setStep("login");
+          setHomeView("dashboard");
+          setActiveTab("Home");
+        }
+      }
+    ]);
   };
+
+  const currentHeaderCopy = useMemo(() => {
+    if (activeTab === "Home") {
+      return homeViewTitles[homeView] || homeViewTitles.dashboard;
+    }
+
+    if (activeTab === "Loan") {
+      return {
+        title: loan.screen || "Loan Services",
+        subtitle: "Manage loan creation, repayment updates, and alerts."
+      };
+    }
+
+    return {
+      title: "Profile",
+      subtitle: "View your assigned role, language, and session details."
+    };
+  }, [activeTab, homeView, loan.screen]);
+
+  const headerBadge = user.name
+    ? `${user.name}${user.identity ? ` - ${user.identity}` : ""}`
+    : user.identity || "TRLM Field Session";
 
   return (
     <I18nProvider language={language}>
@@ -348,11 +498,24 @@ export default function AppRouter() {
           setSignupForm={setSignupForm}
           onSignup={onSignup}
           signupSubmitting={signupSubmitting}
+          signupResponse={signupResponse}
+          loginSubmitting={loginSubmitting}
         />
       ) : null}
 
       {step === "dashboard" ? (
         <View style={styles.dashboardWrap}>
+          <View style={styles.dashboardHeaderWrap}>
+            <View style={styles.languageTopBand} />
+            <TrlmHeader
+              title={currentHeaderCopy.title}
+              subtitle={currentHeaderCopy.subtitle}
+              badge={headerBadge}
+              showLogout
+              onLogout={onLogout}
+              compact
+            />
+          </View>
           <ScrollView contentContainerStyle={styles.screenPad}>
             {activeTab === "Home" ? (
               <DashboardHomeTab
@@ -392,3 +555,9 @@ export default function AppRouter() {
     </I18nProvider>
   );
 }
+
+
+
+
+
+

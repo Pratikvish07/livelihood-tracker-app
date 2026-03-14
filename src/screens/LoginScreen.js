@@ -1,14 +1,15 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
+  Text as RNText,
+  TextInput as RNTextInput,
   View
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
@@ -28,10 +29,35 @@ import {
   fetchGpsByBlock,
   fetchVillagesByGp
 } from "../services/masterApi";
+import { useTranslatedValue } from "../i18n/I18nProvider";
 
-const ID_TYPES = [];
-const CRP_TYPES = [];
-const APP_LOGO_URI = "";
+const ID_TYPES = ["Master ID", "CRP ID"];
+const CRP_TYPES = ["CRP"];
+const APP_LOGO = require("../../assets/branding/livelihood-tracker-icon.png");
+
+function stringifyChildren(children) {
+  if (typeof children === "string" || typeof children === "number") {
+    return String(children);
+  }
+
+  if (Array.isArray(children)) {
+    const parts = children.map((child) => stringifyChildren(child));
+    return parts.every((part) => typeof part === "string") ? parts.join("") : null;
+  }
+
+  return null;
+}
+
+function Text({ children, ...props }) {
+  const rawText = stringifyChildren(children);
+  const translated = useTranslatedValue(rawText ?? children);
+  return <RNText {...props}>{translated}</RNText>;
+}
+
+function TextInput({ placeholder, ...props }) {
+  const translatedPlaceholder = useTranslatedValue(placeholder);
+  return <RNTextInput {...props} placeholder={translatedPlaceholder} />;
+}
 
 function LabelInput({
   label,
@@ -77,7 +103,9 @@ export default function LoginScreen({
   signupForm,
   setSignupForm,
   onSignup,
-  signupSubmitting
+  signupSubmitting,
+  signupResponse,
+  loginSubmitting
 }) {
   const [mode, setMode] = useState("login");
   const [showMapPicker, setShowMapPicker] = useState(false);
@@ -329,13 +357,9 @@ export default function LoginScreen({
               <Text style={localStyles.govtDept}>Tripura Rural Livelihood Mission</Text>
             </View>
           </View>
-          {APP_LOGO_URI ? (
-            <Image source={{ uri: APP_LOGO_URI }} style={localStyles.logoImage} />
-          ) : (
-            <Text style={localStyles.logo}>TRLM</Text>
-          )}
+          <Image source={APP_LOGO} style={localStyles.logoImage} />
         </View>
-        <Text style={localStyles.title}>TRLM Livelihood Trackker</Text>
+        <Text style={localStyles.title}>Livelihood Tracker</Text>
         <Text style={localStyles.subtitle}>Sign in or create your CRP ID from one simple screen.</Text>
       </View>
 
@@ -375,7 +399,7 @@ export default function LoginScreen({
                   {loginForm.idType || "Select ID Type"}
                 </Text>
                 <Text style={localStyles.dropdownChevron}>
-                  {showIdTypeDropdown ? "▲" : "▼"}
+                  {showIdTypeDropdown ? "^" : "v"}
                 </Text>
               </Pressable>
               {showIdTypeDropdown ? (
@@ -435,16 +459,22 @@ export default function LoginScreen({
               </Pressable>
             ) : null}
 
-            <Pressable style={localStyles.primary} onPress={onLogin}>
-              <Text style={localStyles.primaryText}>LOG-IN</Text>
+            <Pressable
+              style={[localStyles.primary, loginSubmitting && localStyles.primaryDisabled]}
+              onPress={onLogin}
+              disabled={loginSubmitting}
+            >
+              <Text style={localStyles.primaryText}>
+                {loginSubmitting ? "Signing In..." : "LOG-IN"}
+              </Text>
             </Pressable>
           </View>
         ) : (
           <ScrollView contentContainerStyle={localStyles.card}>
             <View style={localStyles.signupIntro}>
-              <Text style={localStyles.sectionTitle}>Create CRP ID</Text>
+              <Text style={localStyles.sectionTitle}>CRP Registration</Text>
               <Text style={localStyles.sectionSubtitle}>
-                Fill your details as per official records. Area lists will open automatically after each selection.
+                Fill the registration form as per official records. Area lists will open automatically after each selection.
               </Text>
             </View>
 
@@ -462,8 +492,8 @@ export default function LoginScreen({
             ) : null}
 
             <View style={localStyles.groupCard}>
-              <Text style={localStyles.groupTitle}>Personal Details</Text>
-              <Text style={localStyles.groupHint}>Enter your name and ID details exactly as per official records.</Text>
+              <Text style={localStyles.groupTitle}>Applicant Details</Text>
+              <Text style={localStyles.groupHint}>Enter your name and identification details exactly as per official records.</Text>
 
               <LabelInput
                 label="Full Name"
@@ -502,8 +532,8 @@ export default function LoginScreen({
             </View>
 
             <View style={localStyles.groupCard}>
-            <Text style={localStyles.groupTitle}>Work Area Details</Text>
-            <Text style={localStyles.groupHint}>Choose your district first. The next lists will open automatically based on your selection.</Text>
+            <Text style={localStyles.groupTitle}>Area Mapping</Text>
+            <Text style={localStyles.groupHint}>Choose your district first. Block, GP/VC, and village will open automatically based on your selection.</Text>
 
             <Text style={localStyles.label}>District Name</Text>
             <View style={localStyles.dropdownWrap}>
@@ -786,8 +816,8 @@ export default function LoginScreen({
             </View>
 
             <View style={localStyles.groupCard}>
-            <Text style={localStyles.groupTitle}>Contact and Security</Text>
-            <Text style={localStyles.groupHint}>Use your working mobile number and create a password you can remember safely.</Text>
+            <Text style={localStyles.groupTitle}>Registration Credentials</Text>
+            <Text style={localStyles.groupHint}>Provide your contact number, email, password, CRP type, and profile photo for submission.</Text>
 
             <LabelInput
               label="Password"
@@ -876,7 +906,7 @@ export default function LoginScreen({
               <View style={localStyles.uploadCopy}>
                 <Text style={localStyles.uploadTitle}>Choose a clear profile photo</Text>
                 <Text style={localStyles.uploadHint}>
-                  Upload a `.jpg` or `.jpeg` image so your CRP ID can be verified easily.
+                  Upload a `.jpg` or `.jpeg` image so the registration can be verified easily.
                 </Text>
                 <Pressable style={localStyles.uploadButton} onPress={onPickPicture}>
                   <Text style={localStyles.uploadButtonText}>
@@ -891,9 +921,25 @@ export default function LoginScreen({
             </View>
 
             <View style={localStyles.crpPreviewBox}>
-              <Text style={localStyles.crpPreviewLabel}>CRP ID (Auto-generated)</Text>
+              <Text style={localStyles.crpPreviewLabel}>Proposed CRP ID (Auto-generated)</Text>
               <Text style={localStyles.crpPreviewValue}>{generatedCrpId}</Text>
             </View>
+
+            {signupResponse?.message ? (
+              <View
+                style={[
+                  localStyles.apiResponseCard,
+                  signupResponse.type === "error"
+                    ? localStyles.apiResponseCardError
+                    : localStyles.apiResponseCardSuccess
+                ]}
+              >
+                <Text style={localStyles.apiResponseTitle}>
+                  {signupResponse.type === "error" ? "Signup Response" : "Registration Response"}
+                </Text>
+                <Text style={localStyles.apiResponseText}>{signupResponse.message}</Text>
+              </View>
+            ) : null}
 
             <Pressable
               style={[localStyles.primary, signupSubmitting && localStyles.primaryDisabled]}
@@ -1266,5 +1312,34 @@ const localStyles = StyleSheet.create({
     padding: 11
   },
   crpPreviewLabel: { fontSize: 11, color: "#1d4ed8", fontWeight: "700" },
-  crpPreviewValue: { marginTop: 2, color: "#1e3a8a", fontWeight: "800" }
+  crpPreviewValue: { marginTop: 2, color: "#1e3a8a", fontWeight: "800" },
+  apiResponseCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 4
+  },
+  apiResponseCardSuccess: {
+    backgroundColor: "#ecfdf5",
+    borderColor: "#86efac"
+  },
+  apiResponseCardError: {
+    backgroundColor: "#fef2f2",
+    borderColor: "#fca5a5"
+  },
+  apiResponseTitle: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#1f2937"
+  },
+  apiResponseText: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: "#334155"
+  }
 });
+
+
+
+

@@ -1,33 +1,56 @@
-import { Platform } from "react-native";
-
-const REMOTE_API_BASE_URL =
+const API_BASE_URL =
   process.env.EXPO_PUBLIC_API_BASE_URL || "https://trlm.pickitover.com/api";
-const WEB_PROXY_BASE_URL = process.env.EXPO_PUBLIC_MASTER_PROXY_URL || "http://localhost:8787";
 const INVALID_BASE_URL_MARKERS = ["YOUR_API_HOST", "YOUR_PORT"];
 
-function getBaseUrl() {
-  if (Platform.OS === "web") {
-    return WEB_PROXY_BASE_URL;
+export const API_ENDPOINTS = {
+  master: {
+    districts: "/api/master/districts",
+    blocksByDistrict: (districtId) => `/api/master/block/${districtId}`,
+    gpsByBlock: (blockId) => `/api/master/gp/${blockId}`,
+    villagesByGp: (gpId) => `/api/master/village/${gpId}`
+  },
+  auth: {
+    crpSignup:
+      process.env.EXPO_PUBLIC_CRP_SIGNUP_PATH || "/api/auth/crp/signup",
+    login: process.env.EXPO_PUBLIC_LOGIN_PATH || ""
   }
+};
 
-  return REMOTE_API_BASE_URL;
-}
-
-function buildUrl(path) {
-  const baseUrl = getBaseUrl();
+function getBaseUrl() {
+  const sanitizedBaseUrl = API_BASE_URL.trim().replace(/\/+$/, "");
   const hasPlaceholder = INVALID_BASE_URL_MARKERS.some((marker) =>
-    baseUrl.includes(marker)
+    sanitizedBaseUrl.includes(marker)
   );
 
-  if (!baseUrl || hasPlaceholder) {
+  if (!sanitizedBaseUrl || hasPlaceholder) {
     throw new Error(
-      Platform.OS === "web"
-        ? "You are running the web preview. Start `npm run api-proxy` and reload Expo web."
-        : "API base URL is not configured. Update EXPO_PUBLIC_API_BASE_URL in .env with your real backend URL."
+      "API base URL is not configured. Update EXPO_PUBLIC_API_BASE_URL in .env with your real backend URL."
     );
   }
 
-  return `${baseUrl.replace(/\/$/, "")}${path}`;
+  return sanitizedBaseUrl;
+}
+
+function normalizeEndpointPath(path) {
+  if (!path) {
+    throw new Error("API path is missing.");
+  }
+
+  if (/^https?:\/\//i.test(path)) {
+    return path;
+  }
+
+  return `/${String(path).replace(/^\/+/, "")}`;
+}
+
+function buildUrl(path) {
+  const normalizedPath = normalizeEndpointPath(path);
+
+  if (/^https?:\/\//i.test(normalizedPath)) {
+    return normalizedPath;
+  }
+
+  return `${getBaseUrl()}${normalizedPath}`;
 }
 
 function ensureArray(payload) {
@@ -43,90 +66,150 @@ function ensureArray(payload) {
     return payload.result;
   }
 
+  if (Array.isArray(payload?.items)) {
+    return payload.items;
+  }
+
   return [];
 }
 
+function extractErrorMessage(payload, fallbackMessage) {
+  if (!payload) {
+    return fallbackMessage;
+  }
+
+  if (typeof payload === "string") {
+    return payload;
+  }
+
+  return (
+    payload.message ||
+    payload.error ||
+    payload.title ||
+    payload.details ||
+    fallbackMessage
+  );
+}
+
 async function parseApiResponse(response, entityName) {
+  const fallbackMessage = `Failed to load ${entityName} (${response.status})`;
   const contentType = response.headers.get("content-type") || "";
   const bodyText = await response.text();
+  const isJsonResponse = contentType.toLowerCase().includes("application/json");
+
+  let parsedPayload = null;
+
+  if (bodyText && isJsonResponse) {
+    try {
+      parsedPayload = JSON.parse(bodyText);
+    } catch {
+      throw new Error(`Invalid JSON received while loading ${entityName}.`);
+    }
+  }
 
   if (!response.ok) {
-    try {
-      const payload = JSON.parse(bodyText);
-      throw new Error(payload?.message || `Failed to load ${entityName} (${response.status})`);
-    } catch {
-      throw new Error(bodyText || `Failed to load ${entityName} (${response.status})`);
-    }
+    throw new Error(
+      extractErrorMessage(parsedPayload || bodyText, fallbackMessage)
+    );
+  }
+
+  if (parsedPayload !== null) {
+    return parsedPayload;
   }
 
   if (!bodyText) {
     return {};
   }
 
-  if (!contentType.toLowerCase().includes("application/json")) {
-    return { message: bodyText };
-  }
-
-  try {
-    return JSON.parse(bodyText);
-  } catch {
-    throw new Error(`Invalid JSON received while loading ${entityName}.`);
-  }
+  return { message: bodyText };
 }
 
-async function executeRequest(path, entityName, options) {
-  try {
-    const response = await fetch(buildUrl(path), options);
-    return await parseApiResponse(response, entityName);
-  } catch (error) {
-    if (
-      Platform.OS === "web" &&
-      /fetch failed|Failed to fetch|Network request failed|ERR_CONNECTION_REFUSED|CORS/i.test(
-        String(error?.message || error)
-      )
-    ) {
-      throw new Error(
-        "Web preview needs the local proxy. Run `npm run api-proxy`, restart Expo web, and try again."
-      );
-    }
-    throw error;
-  }
+async function executeRequest(path, entityName, options = {}) {
+  const requestUrl = buildUrl(path);
+  const response = await fetch(requestUrl, {
+    headers: {
+      Accept: "application/json",
+      ...options.headers
+    },
+    ...options
+  });
+
+  return parseApiResponse(response, entityName);
+}
+
+function mapOption(item, idKeys, nameKeys) {
+  const id = idKeys
+    .map((key) => item?.[key])
+    .find((value) => value !== undefined && value !== null && value !== "");
+  const name = nameKeys
+    .map((key) => item?.[key])
+    .find((value) => typeof value === "string" && value.trim());
+
+  return {
+    id,
+    name: name || ""
+  };
+}
+
+function mapCollection(payload, idKeys, nameKeys) {
+  return ensureArray(payload)
+    .map((item) => mapOption(item, idKeys, nameKeys))
+    .filter((item) => item.id !== undefined && item.id !== null && item.name);
 }
 
 export async function fetchDistricts() {
-  const payload = await executeRequest("/api/master/districts", "districts");
-  return ensureArray(payload).map((item) => ({
-    id: item.districtId ?? item.id ?? item.value,
-    name: item.districtName ?? item.name ?? item.label ?? ""
-  }));
+  const payload = await executeRequest(
+    API_ENDPOINTS.master.districts,
+    "districts"
+  );
+  return mapCollection(payload, ["districtId", "id", "value"], [
+    "districtName",
+    "name",
+    "label"
+  ]);
 }
 
 export async function fetchBlocksByDistrict(districtId) {
-  const payload = await executeRequest(`/api/master/block/${districtId}`, "blocks");
-  return ensureArray(payload).map((item) => ({
-    id: item.blockId ?? item.BlockId ?? item.id ?? item.value,
-    name: item.blockName ?? item.BlockName ?? item.name ?? item.label ?? ""
-  }));
+  const payload = await executeRequest(
+    API_ENDPOINTS.master.blocksByDistrict(districtId),
+    "blocks"
+  );
+  return mapCollection(payload, ["blockId", "BlockId", "id", "value"], [
+    "blockName",
+    "BlockName",
+    "name",
+    "label"
+  ]);
 }
 
 export async function fetchGpsByBlock(blockId) {
-  const payload = await executeRequest(`/api/master/gp/${blockId}`, "gram panchayats");
-  return ensureArray(payload).map((item) => ({
-    id: item.gpId ?? item.GPId ?? item.id ?? item.value,
-    name: item.gpName ?? item.GPName ?? item.name ?? item.label ?? ""
-  }));
+  const payload = await executeRequest(
+    API_ENDPOINTS.master.gpsByBlock(blockId),
+    "gram panchayats"
+  );
+  return mapCollection(payload, ["gpId", "GPId", "id", "value"], [
+    "gpName",
+    "GPName",
+    "name",
+    "label"
+  ]);
 }
 
 export async function fetchVillagesByGp(gpId) {
-  const payload = await executeRequest(`/api/master/village/${gpId}`, "villages");
-  return ensureArray(payload).map((item) => ({
-    id: item.villageId ?? item.VillageId ?? item.id ?? item.value,
-    name: item.villageName ?? item.VillageName ?? item.name ?? item.label ?? ""
-  }));
+  const payload = await executeRequest(
+    API_ENDPOINTS.master.villagesByGp(gpId),
+    "villages"
+  );
+  return mapCollection(payload, ["villageId", "VillageId", "id", "value"], [
+    "villageName",
+    "VillageName",
+    "name",
+    "label"
+  ]);
 }
 
 export async function submitCrpSignup(payload) {
-  return executeRequest("/api/auth/CRPsignup", "CRP signup", {
+  return executeRequest(API_ENDPOINTS.auth.crpSignup, "CRP signup", {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -134,3 +217,22 @@ export async function submitCrpSignup(payload) {
     body: JSON.stringify(payload)
   });
 }
+
+export async function loginUser(payload) {
+  if (!API_ENDPOINTS.auth.login) {
+    throw new Error(
+      "Login API path is not configured yet. Share the login endpoint and request body format, then add EXPO_PUBLIC_LOGIN_PATH in .env."
+    );
+  }
+
+  return executeRequest(API_ENDPOINTS.auth.login, "login", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
+
+

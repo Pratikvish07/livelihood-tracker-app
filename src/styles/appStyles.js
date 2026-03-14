@@ -10,76 +10,264 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingBottom: 90
   },
+  dashboardHeaderWrap: {
+    paddingHorizontal: 14,
+    paddingTop: 14,
+    paddingBottom: 2,
+    gap: 10
+  },
   languageScreenPad: {
-    padding: 16,
-    gap: 14,
-    paddingBottom: 90
+    padding: 18,
+    gap: 16,
+    paddingBottom: 90,
+    backgroundColor: "#edf2f7"
+  },
+  languageTopBand: {
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: "#d97706",
+    marginHorizontal: 6
   },
   languageHero: {
-    backgroundColor: "#dbf4ee",
+    backgroundColor: "#f5f0df",
     borderWidth: 1,
-    borderColor: "#a7ddd0",
-    borderRadius: 20,
-    padding: 16,
-    gap: 6
+    borderColor: "#d4c59a",
+    borderRadius: 22,
+    padding: 18,
+    gap: 14,
+    shadowColor: "#5b5b39",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 3
+  },
+  languageHeroHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12
+  },
+  languageSeal: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1.5,
+    borderColor: "#a07f2f",
+    backgroundColor: "#fff8df",
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  languageSealText: {
+    color: "#7c5a10",
+    fontWeight: "900",
+    fontSize: 18
+  },
+  languageGovtCopy: {
+    flex: 1,
+    gap: 2
+  },
+  languageGovtLabel: {
+    color: "#53634c",
+    fontSize: 11,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 0.7
+  },
+  languageGovtDept: {
+    color: "#1f2937",
+    fontSize: 16,
+    fontWeight: "800"
+  },
+  languageTitleWrap: {
+    paddingTop: 4,
+    gap: 4
   },
   languageEyebrow: {
     color: "#0f766e",
     fontWeight: "800",
-    letterSpacing: 1
+    letterSpacing: 1.2
   },
   languageCard: {
-    backgroundColor: "#ffffff",
-    borderRadius: 18,
+    backgroundColor: "#fffdf8",
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#cfd8e3",
-    padding: 12,
-    gap: 10,
-    shadowColor: "#0f172a",
+    borderColor: "#d5c9ab",
+    padding: 14,
+    gap: 12,
+    shadowColor: "#534d3a",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.08,
-    shadowRadius: 10,
+    shadowRadius: 12,
     elevation: 3
+  },
+  languageCardHeader: {
+    gap: 4,
+    paddingBottom: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ebe2ca"
+  },
+  languageCardTitle: {
+    color: "#1b2b45",
+    fontSize: 16,
+    fontWeight: "800"
+  },
+  languageCardHint: {
+    color: "#5b6472",
+    fontSize: 12,
+    lineHeight: 18
   },
   languageOption: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     borderWidth: 1,
-    borderColor: "#9caec6",
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    backgroundColor: "#f8fbff"
+    borderColor: "#b5bfd0",
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: "#f9fbff"
   },
   languageOptionActive: {
-    backgroundColor: "#0f766e",
-    borderColor: "#0f766e"
+    backgroundColor: "#1f7a74",
+    borderColor: "#175d58"
   },
   languageOptionLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8
+    gap: 4
+  },
+  languageOptionPrefix: {
+    color: "#6b7280",
+    fontSize: 10,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 0.8
+  },
+  languageOptionPrefixActive: {
+    color: "#d7f7ef"
   },
   languageOptionText: {
-    color: "#0f172a",
+    color: "#10213d",
     fontWeight: "700",
-    fontSize: 15
+    fontSize: 16
   },
   languageOptionTextActive: {
     color: "#ffffff"
   },
   languageDot: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 2,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 3,
     borderColor: "#64748b",
     backgroundColor: "#ffffff"
   },
   languageDotActive: {
     borderColor: "#ffffff",
-    backgroundColor: "#34d399"
+    backgroundColor: "#6ee7b7"
+  },
+  trlmHeaderCard: {
+    backgroundColor: "#f5f0df",
+    borderWidth: 1,
+    borderColor: "#d4c59a",
+    borderRadius: 22,
+    padding: 18,
+    gap: 14,
+    shadowColor: "#5b5b39",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 3
+  },
+  trlmHeaderCardCompact: {
+    paddingVertical: 14,
+    paddingHorizontal: 16
+  },
+  trlmHeaderTopRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12
+  },
+  trlmBrandRow: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12
+  },
+  trlmSeal: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    borderWidth: 1.5,
+    borderColor: "#a07f2f",
+    backgroundColor: "#fff8df",
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  trlmSealText: {
+    color: "#7c5a10",
+    fontWeight: "900",
+    fontSize: 17
+  },
+  trlmBrandCopy: {
+    flex: 1,
+    gap: 2
+  },
+  trlmGovtLabel: {
+    color: "#53634c",
+    fontSize: 11,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 0.7
+  },
+  trlmGovtDept: {
+    color: "#1f2937",
+    fontSize: 16,
+    fontWeight: "800"
+  },
+  trlmHeaderBody: {
+    gap: 6
+  },
+  trlmBadge: {
+    alignSelf: "flex-start",
+    backgroundColor: "#fff9eb",
+    borderWidth: 1,
+    borderColor: "#d6c38f",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5
+  },
+  trlmBadgeText: {
+    color: "#6c5718",
+    fontSize: 11,
+    fontWeight: "800"
+  },
+  trlmHeaderTitle: {
+    color: "#1b2b45",
+    fontSize: 20,
+    fontWeight: "900"
+  },
+  trlmHeaderSubtitle: {
+    color: "#5b6472",
+    fontSize: 12,
+    lineHeight: 18
+  },
+  trlmLogoutButton: {
+    minWidth: 82,
+    borderRadius: 14,
+    backgroundColor: "#13213a",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#13213a",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 3
+  },
+  trlmLogoutButtonText: {
+    color: "#ffffff",
+    fontSize: 13,
+    fontWeight: "800"
   },
   centerScreen: {
     flex: 1,
@@ -232,6 +420,11 @@ const styles = StyleSheet.create({
     elevation: 10,
     borderWidth: 4,
     borderColor: "rgba(31,75,63,0.25)",
+  },
+  splashLogoImage: {
+    width: 92,
+    height: 92,
+    borderRadius: 46
   },
   splashLogoText: {
     color: "#1f4b3f",

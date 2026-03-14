@@ -1,12 +1,18 @@
 import React from "react";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, Text as RNText, View } from "react-native";
 import LabelInput from "../../components/LabelInput";
 import Pill from "../../components/Pill";
 import PrimaryButton from "../../components/PrimaryButton";
+import { useTranslatedValue } from "../../i18n/I18nProvider";
 import styles from "../../styles/appStyles";
 import { calculateEmi } from "../../utils/appCalculations";
 
 const LOAN_SCREENS = ["Add Loan", "Repayment", "Alerts"];
+
+function Text({ children, ...props }) {
+  const translated = useTranslatedValue(typeof children === "string" ? children : children);
+  return <RNText {...props}>{translated}</RNText>;
+}
 
 export default function LoanTab({ loan, setLoan, onSaveLoan, onRepay, onNotify }) {
   return (
@@ -98,7 +104,7 @@ export default function LoanTab({ loan, setLoan, onSaveLoan, onRepay, onNotify }
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Loan Alert Screen</Text>
           <Text style={styles.badgeAlert}>Overdue Badge</Text>
-          <Text style={styles.infoLine}>Days Delayed: {loan.daysDelayed}</Text>
+          <Text style={styles.infoLine}>{`Days Delayed: ${loan.daysDelayed}`}</Text>
           <PrimaryButton label="Notify Admin" onPress={onNotify} />
         </View>
       ) : null}

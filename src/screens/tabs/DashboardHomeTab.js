@@ -1,6 +1,31 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, Text as RNText, TextInput as RNTextInput, View } from "react-native";
+import { useTranslatedValue } from "../../i18n/I18nProvider";
 import { getCurrentLocation, calculateDistance } from "../../utils/geofence";
+
+function stringifyChildren(children) {
+  if (typeof children === "string" || typeof children === "number") {
+    return String(children);
+  }
+
+  if (Array.isArray(children)) {
+    const parts = children.map((child) => stringifyChildren(child));
+    return parts.every((part) => typeof part === "string") ? parts.join("") : null;
+  }
+
+  return null;
+}
+
+function Text({ children, ...props }) {
+  const rawText = stringifyChildren(children);
+  const translated = useTranslatedValue(rawText ?? children);
+  return <RNText {...props}>{translated}</RNText>;
+}
+
+function TextInput({ placeholder, ...props }) {
+  const translatedPlaceholder = useTranslatedValue(placeholder);
+  return <RNTextInput {...props} placeholder={translatedPlaceholder} />;
+}
 
 function DropdownField({
   label,

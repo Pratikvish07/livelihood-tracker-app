@@ -31,7 +31,11 @@ async function proxyRequest(req, res) {
     return;
   }
 
-  const targetUrl = new URL(`${TARGET_BASE}${req.url}`);
+  const normalizedPath =
+    TARGET_BASE.endsWith('/api') && req.url.startsWith('/api/')
+      ? req.url.slice(4)
+      : req.url;
+  const targetUrl = new URL(`${TARGET_BASE}${normalizedPath}`);
   const requestBody = req.method === 'POST' ? await readRequestBody(req) : null;
 
   const upstream = https.request(

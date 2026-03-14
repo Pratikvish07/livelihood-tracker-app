@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { Animated, Platform, Text, View } from "react-native";
+import { Animated, Image, Platform, Text, View } from "react-native";
 import { useI18n } from "../i18n/I18nProvider";
 import styles from "../styles/appStyles";
+
+const APP_LOGO = require("../../assets/branding/livelihood-tracker-icon.png");
 
 export default function SplashScreen() {
   const { t } = useI18n();
@@ -83,12 +85,12 @@ export default function SplashScreen() {
             { transform: [{ scale: pulseAnim }] },
           ]}
         >
-          <Text style={styles.splashLogoText}>TRLM</Text>
+          <Image source={APP_LOGO} style={styles.splashLogoImage} resizeMode="cover" />
         </Animated.View>
       </View>
 
       {/* App name */}
-      <Text style={styles.splashAppName}>TRLM Livelihood Trackker</Text>
+      <Text style={styles.splashAppName}>Livelihood Tracker</Text>
       
       {/* Subtitle */}
       <Text style={styles.splashSubtitle}>

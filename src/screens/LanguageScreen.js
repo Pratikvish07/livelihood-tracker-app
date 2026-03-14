@@ -11,15 +11,34 @@ export default function LanguageScreen({ language, setLanguage, onContinue }) {
 
   return (
     <ScrollView contentContainerStyle={styles.languageScreenPad}>
+      <View style={styles.languageTopBand} />
       <View style={styles.languageHero}>
-        <Text style={styles.languageEyebrow}>SRS APP</Text>
-        <HeaderText
-          title="Language Selection"
-          subtitle="Choose your preferred language"
-        />
+        <View style={styles.languageHeroHeader}>
+          <View style={styles.languageSeal}>
+            <Text style={styles.languageSealText}>TR</Text>
+          </View>
+          <View style={styles.languageGovtCopy}>
+            <Text style={styles.languageGovtLabel}>Government of Tripura</Text>
+            <Text style={styles.languageGovtDept}>Tripura Rural Livelihood Mission</Text>
+          </View>
+        </View>
+
+        <View style={styles.languageTitleWrap}>
+          <HeaderText
+            title="Language Selection"
+            subtitle="Choose your preferred language"
+          />
+        </View>
       </View>
 
       <View style={styles.languageCard}>
+        <View style={styles.languageCardHeader}>
+          <Text style={styles.languageCardTitle}>Select Interface Language</Text>
+          <Text style={styles.languageCardHint}>
+            This selection will be applied across the application screens.
+          </Text>
+        </View>
+
         {LANGUAGES.map((item) => {
           const active = language === item;
           return (
@@ -29,6 +48,9 @@ export default function LanguageScreen({ language, setLanguage, onContinue }) {
               onPress={() => setLanguage(item)}
             >
               <View style={styles.languageOptionLeft}>
+                <Text style={[styles.languageOptionPrefix, active && styles.languageOptionPrefixActive]}>
+                  {active ? "Selected" : "Available"}
+                </Text>
                 <Text style={[styles.languageOptionText, active && styles.languageOptionTextActive]}>
                   {t(item)}
                 </Text>
