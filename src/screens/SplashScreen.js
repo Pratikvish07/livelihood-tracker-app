@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Animated, Text, View } from "react-native";
+import { Animated, Platform, Text, View } from "react-native";
 import { useI18n } from "../i18n/I18nProvider";
 import styles from "../styles/appStyles";
 
@@ -10,6 +10,7 @@ export default function SplashScreen() {
   const [dotAnim2] = useState(new Animated.Value(0.4));
   const [dotAnim3] = useState(new Animated.Value(0.4));
   const [activeDot, setActiveDot] = useState(0);
+  const useNativeDriver = Platform.OS !== "web";
 
   useEffect(() => {
     // Pulsing animation for logo
@@ -18,12 +19,12 @@ export default function SplashScreen() {
         Animated.timing(pulseAnim, {
           toValue: 1.1,
           duration: 1000,
-          useNativeDriver: true,
+          useNativeDriver,
         }),
         Animated.timing(pulseAnim, {
           toValue: 1,
           duration: 1000,
-          useNativeDriver: true,
+          useNativeDriver,
         }),
       ])
     );
@@ -32,12 +33,12 @@ export default function SplashScreen() {
     // Loading dots animation
     const dots = Animated.loop(
       Animated.sequence([
-        Animated.timing(dotAnim1, { toValue: 1, duration: 300, useNativeDriver: true }),
-        Animated.timing(dotAnim2, { toValue: 1, duration: 300, useNativeDriver: true }),
-        Animated.timing(dotAnim3, { toValue: 1, duration: 300, useNativeDriver: true }),
-        Animated.timing(dotAnim1, { toValue: 0.4, duration: 300, useNativeDriver: true }),
-        Animated.timing(dotAnim2, { toValue: 0.4, duration: 300, useNativeDriver: true }),
-        Animated.timing(dotAnim3, { toValue: 0.4, duration: 300, useNativeDriver: true }),
+        Animated.timing(dotAnim1, { toValue: 1, duration: 300, useNativeDriver }),
+        Animated.timing(dotAnim2, { toValue: 1, duration: 300, useNativeDriver }),
+        Animated.timing(dotAnim3, { toValue: 1, duration: 300, useNativeDriver }),
+        Animated.timing(dotAnim1, { toValue: 0.4, duration: 300, useNativeDriver }),
+        Animated.timing(dotAnim2, { toValue: 0.4, duration: 300, useNativeDriver }),
+        Animated.timing(dotAnim3, { toValue: 0.4, duration: 300, useNativeDriver }),
       ])
     );
     dots.start();
@@ -57,11 +58,18 @@ export default function SplashScreen() {
   return (
     <View style={styles.splashContainer}>
       {/* Decorative background circles */}
+      <View style={styles.splashTopBand} />
+      <View style={styles.splashBottomBand} />
       <View style={styles.splashDecoCircle1} />
       <View style={styles.splashDecoCircle2} />
       <View style={styles.splashDecoCircle3} />
+      <View style={styles.splashGridLineVertical} />
+      <View style={styles.splashGridLineHorizontal} />
 
       {/* Logo section with pulse animation */}
+      <View style={styles.splashAuthorityBadge}>
+        <Text style={styles.splashAuthorityText}>TRLM</Text>
+      </View>
       <View style={styles.splashLogoWrapper}>
         <Animated.View
           style={[
@@ -80,11 +88,11 @@ export default function SplashScreen() {
       </View>
 
       {/* App name */}
-      <Text style={styles.splashAppName}>{t("SRS Livelihood App")}</Text>
+      <Text style={styles.splashAppName}>TRLM Livelihood Trackker</Text>
       
       {/* Subtitle */}
       <Text style={styles.splashSubtitle}>
-        {t("Digital Livelihood Monitoring System")}
+        {t("Rural field monitoring, identity creation, and livelihood tracking")}
       </Text>
 
       {/* Animated loading dots */}
@@ -113,7 +121,7 @@ export default function SplashScreen() {
       </View>
 
       {/* Tagline */}
-      <Text style={styles.splashTagline}>Empowering Rural Livelihoods</Text>
+      <Text style={styles.splashTagline}>Tripura Rural Livelihood Mission</Text>
 
       {/* Version */}
       <Text style={styles.splashVersion}>Version 1.0.0</Text>

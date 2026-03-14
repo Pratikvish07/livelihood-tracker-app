@@ -16,10 +16,10 @@ import {
   isAadhaarValid,
   isContactValid,
   isEmailValid,
-  isJpegFile,
   isLokosValid,
   isPasswordStrong
 } from "../utils/appCalculations";
+import { submitCrpSignup } from "../services/masterApi";
 
 export default function AppRouter() {
   const [step, setStep] = useState("splash");
@@ -28,9 +28,9 @@ export default function AppRouter() {
   const [homeView, setHomeView] = useState("dashboard");
 
   const [loginForm, setLoginForm] = useState({
-    idType: "CRP ID",
-    identity: "Pratik-id",
-    password: "Pratik"
+    idType: "",
+    identity: "",
+    password: ""
   });
 
   const [signupForm, setSignupForm] = useState({
@@ -38,7 +38,11 @@ export default function AppRouter() {
     uid: "",
     lokosId: "",
     district: "",
+    districtId: "",
     block: "",
+    blockId: "",
+    gpId: "",
+    villageId: "",
     gpVc: [],
     villages: [],
     password: "",
@@ -51,12 +55,12 @@ export default function AppRouter() {
 
   const [user, setUser] = useState({
     identity: "",
-    role: "CRP",
+    role: "",
     name: "",
-    block: "Block A",
-    gpVcName: "GP-A",
-    villageName: "Village 1",
-    language: "English"
+    block: "",
+    gpVcName: "",
+    villageName: "",
+    language: ""
   });
 
   const [workingReport, setWorkingReport] = useState({
@@ -65,52 +69,22 @@ export default function AppRouter() {
     submitted: false
   });
 
-  const [alerts, setAlerts] = useState([
-    { id: "ALT-1", type: "Pending", message: "2 field visits pending this week." },
-    { id: "ALT-2", type: "Upcoming", message: "Livestock activity review due tomorrow." },
-    { id: "ALT-3", type: "Upcoming", message: "Honorarium data submission due in 2 days." }
-  ]);
+  const [alerts, setAlerts] = useState([]);
+  const [signupSubmitting, setSignupSubmitting] = useState(false);
+  const [pendingApprovalCrpId, setPendingApprovalCrpId] = useState("");
 
-  const [activities] = useState([
-    {
-      id: "ACT-1",
-      title: "Farm Monitoring Visit",
-      photo: "farm_visit_01.jpg",
-      action: "Completed",
-      membersVisited: 9,
-      progress: 70,
-      date: "2026-02-18"
-    },
-    {
-      id: "ACT-2",
-      title: "Pashu Sakhi Follow-up",
-      photo: "pashu_followup_02.jpg",
-      action: "In Progress",
-      membersVisited: 6,
-      progress: 45,
-      date: "2026-02-15"
-    },
-    {
-      id: "ACT-3",
-      title: "SHG Enterprise Review",
-      photo: "enterprise_review_03.jpg",
-      action: "Completed",
-      membersVisited: 11,
-      progress: 85,
-      date: "2026-02-10"
-    }
-  ]);
+  const [activities] = useState([]);
 
   const [loan, setLoan] = useState({
-    screen: "Add Loan",
+    screen: "",
     amount: "",
-    rate: "12",
-    duration: "12",
-    startDate: "2026-02-20",
+    rate: "",
+    duration: "",
+    startDate: "",
     emiPaid: "",
     paymentDate: "",
     outstanding: "0",
-    daysDelayed: 9
+    daysDelayed: 0
   });
 
   useEffect(() => {
@@ -119,6 +93,11 @@ export default function AppRouter() {
   }, []);
 
   const t = (text) => translateText(language, text);
+  const extractCrpId = (value) => {
+    const text = typeof value === "string" ? value : "";
+    const match = text.match(/CRP-\d+/i);
+    return match ? match[0].toUpperCase() : "";
+  };
 
   const dashboardMetrics = useMemo(() => {
     const totalVisits30 = activities.length;
@@ -132,10 +111,10 @@ export default function AppRouter() {
       totalVisits30,
       totalMembersVisited,
       honorariumToBeClaimed,
-      shgMembersAssigned: 42,
+      shgMembersAssigned: 0,
       honorariumReceived: workingReport.amountReceived || 0,
-      visitGraph: [3, 5, 4, 6, 7, 8],
-      activityGraph: [18, 22, 25, 20, 28, 30]
+      visitGraph: [0, 0, 0, 0, 0, 0],
+      activityGraph: [0, 0, 0, 0, 0, 0]
     };
   }, [activities, workingReport.amountReceived]);
 
@@ -145,22 +124,24 @@ export default function AppRouter() {
       return;
     }
 
-    setUser({
-      identity: loginForm.identity,
-      idType: loginForm.idType,
-      role: detectRole(loginForm.identity),
-      name: "Existing User",
-      block: "Block A",
-      gpVcName: "GP-A",
-      villageName: "Village 1",
-      language
-    });
+    if (
+      pendingApprovalCrpId &&
+      loginForm.identity.trim().toUpperCase() === pendingApprovalCrpId.toUpperCase()
+    ) {
+      Alert.alert(
+        t("Approval pending"),
+        t("Your CRP registration is submitted, but admin approval is still pending. Please wait for approval before logging in.")
+      );
+      return;
+    }
 
-    setHomeView("dashboard");
-    setStep("dashboard");
+    Alert.alert(
+      t("Login API required"),
+      t("Dashboard access is blocked until the real login and approval-check API is connected.")
+    );
   };
 
-  const onSignup = (generatedCrpId) => {
+  const onSignup = async (generatedCrpId, currentLocation) => {
     if (!signupForm.name.trim()) {
       Alert.alert(t("Validation"), t("Name is required."));
       return;
@@ -207,29 +188,79 @@ export default function AppRouter() {
     }
 
     if (signupForm.crpTypes.length === 0) {
-      Alert.alert(t("Validation"), t("Select at least one CRP Type."));
+      // Keep UI validation permissive until CRP type master API is wired.
+    }
+
+    if (!signupForm.pictureFile) {
+      Alert.alert(t("Validation"), t("Please select a profile photo."));
       return;
     }
 
-    if (!isJpegFile(signupForm.pictureFile)) {
-      Alert.alert(t("Validation"), t("Upload picture must be .jpeg or .jpg."));
-      return;
+    const payload = {
+      fullName: signupForm.name.trim(),
+      aadhaarNo: signupForm.uid,
+      lokOSId: signupForm.lokosId,
+      villageId: Number(signupForm.villageId) || 0,
+      contactNo: signupForm.contactNo,
+      emailId: signupForm.email,
+      password: signupForm.password,
+      crpTypeId: Number(signupForm.crpTypes[0]) || 0,
+      shgId: 0,
+      picturePath: signupForm.pictureFile,
+      latitude: Number(currentLocation?.latitude) || 0,
+      longitude: Number(currentLocation?.longitude) || 0
+    };
+
+    try {
+      setSignupSubmitting(true);
+      const response = await submitCrpSignup(payload);
+      const responseMessage =
+        typeof response?.message === "string"
+          ? response.message
+          : typeof response === "string"
+            ? response
+            : "";
+      const createdIdentity =
+        response?.crpId ||
+        response?.CRPId ||
+        response?.id ||
+        response?.Id ||
+        extractCrpId(responseMessage) ||
+        generatedCrpId;
+
+      setUser({
+        identity: createdIdentity,
+        idType: "CRP ID",
+        role: "CRP",
+        name: signupForm.name,
+        block: signupForm.block,
+        gpVcName: signupForm.gpVc.join(", "),
+        villageName: signupForm.villages.join(", "),
+        language
+      });
+
+      setPendingApprovalCrpId(createdIdentity);
+      setLoginForm((prev) => ({
+        ...prev,
+        idType: "CRP ID",
+        identity: createdIdentity,
+        password: ""
+      }));
+
+      Alert.alert(
+        t("Registration submitted"),
+        extractCrpId(responseMessage)
+          ? `${t("Generated CRP ID")}: ${createdIdentity}\n${t("Please wait for admin approval before logging in.")}`
+          : responseMessage || `${t("Generated CRP ID")}: ${createdIdentity}`
+      );
+      setHomeView("dashboard");
+      setActiveTab("Home");
+      setStep("login");
+    } catch (error) {
+      Alert.alert(t("Signup error"), error.message || t("Unable to create CRP ID."));
+    } finally {
+      setSignupSubmitting(false);
     }
-
-    setUser({
-      identity: generatedCrpId,
-      idType: "CRP ID",
-      role: "CRP",
-      name: signupForm.name,
-      block: signupForm.block,
-      gpVcName: signupForm.gpVc.join(", "),
-      villageName: signupForm.villages.join(", "),
-      language
-    });
-
-    Alert.alert(t("CRP ID Created"), `${t("Generated CRP ID")}: ${generatedCrpId}`);
-    setHomeView("dashboard");
-    setStep("dashboard");
   };
 
   const onSubmitWorkingReport = () => {
@@ -316,6 +347,7 @@ export default function AppRouter() {
           signupForm={signupForm}
           setSignupForm={setSignupForm}
           onSignup={onSignup}
+          signupSubmitting={signupSubmitting}
         />
       ) : null}
 

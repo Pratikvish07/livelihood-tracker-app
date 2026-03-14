@@ -45,16 +45,24 @@ function CycleDropdown({ value, options, onChange, style }) {
   return (
     <Pressable
       style={[flowStyles.ddBox, style]}
+      disabled={options.length === 0}
       onPress={() => {
+        if (options.length === 0) {
+          return;
+        }
         const currentIndex = options.indexOf(value);
         const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % options.length : 0;
         onChange(options[nextIndex]);
       }}
     >
-      <Text style={flowStyles.ddText}>{value}</Text>
+      <Text style={flowStyles.ddText}>{value || "No data"}</Text>
       <Text style={flowStyles.ddArrow}>v</Text>
     </Pressable>
   );
+}
+
+function firstOption(options) {
+  return options[0] || "";
 }
 
 export default function DashboardHomeTab({
@@ -74,42 +82,27 @@ export default function DashboardHomeTab({
   onBackToDashboard
 }) {
   const [showCrpTypeMenu, setShowCrpTypeMenu] = useState(false);
-  const [selectedCrpType, setSelectedCrpType] = useState(user.idType || "CRP ID");
-  const crpTypeOptions = ["CRP ID", "Master ID", "High Level CRP"];
-  const shgNames = ["Ujjwal Lakshmi SHG", "Maa Tara SHG", "Nava Jyoti SHG"];
-  const shgMembers = ["Anita", "Rekha", "Puja", "Mina"];
-  const activityTypes = ["Goat Rearing", "Poultry", "Vegetable Farming", "Tailoring"];
-  const subCategories = ["Farm", "Livestock", "Fishery", "Non-Farm"];
-  const livelihoodCboTypeOptions = [
-    "Producers Group (PG)",
-    "Non-Farm Collective (NFC)",
-    "Integrated Farming Cluster Collective (IFC)",
-    "Custom Hiring Center Collective (CHC)"
-  ];
-  const livelihoodCboNameOptions = [
-    "Jeevan Producers Group",
-    "Maa Tara NFC",
-    "Green Valley FPC",
-    "Krishi CHC Unit"
-  ];
-  const livelihoodCboActivityOptions = [
-    "Goat Rearing Collective",
-    "Vegetable Cluster Farming",
-    "Poultry Group Activity",
-    "Tailoring Unit Activity"
-  ];
-  const [shgName, setShgName] = useState(shgNames[0]);
-  const [memberName, setMemberName] = useState(shgMembers[0]);
-  const [activityType, setActivityType] = useState(activityTypes[0]);
-  const [subCategory, setSubCategory] = useState(subCategories[0]);
+  const [selectedCrpType, setSelectedCrpType] = useState(user.idType || "");
+  const crpTypeOptions = [];
+  const shgNames = [];
+  const shgMembers = [];
+  const activityTypes = [];
+  const subCategories = [];
+  const livelihoodCboTypeOptions = [];
+  const livelihoodCboNameOptions = [];
+  const livelihoodCboActivityOptions = [];
+  const [shgName, setShgName] = useState(firstOption(shgNames));
+  const [memberName, setMemberName] = useState(firstOption(shgMembers));
+  const [activityType, setActivityType] = useState(firstOption(activityTypes));
+  const [subCategory, setSubCategory] = useState(firstOption(subCategories));
   const [openShgDropdown, setOpenShgDropdown] = useState(false);
   const [openMemberDropdown, setOpenMemberDropdown] = useState(false);
   const [openActivityDropdown, setOpenActivityDropdown] = useState(false);
   const [openSubCategoryDropdown, setOpenSubCategoryDropdown] = useState(false);
-  const [lhCboType, setLhCboType] = useState(livelihoodCboTypeOptions[0]);
-  const [selectedLhCboName, setSelectedLhCboName] = useState(livelihoodCboNameOptions[0]);
+  const [lhCboType, setLhCboType] = useState(firstOption(livelihoodCboTypeOptions));
+  const [selectedLhCboName, setSelectedLhCboName] = useState(firstOption(livelihoodCboNameOptions));
   const [selectedLhCboActivity, setSelectedLhCboActivity] = useState(
-    livelihoodCboActivityOptions[0]
+    firstOption(livelihoodCboActivityOptions)
   );
   const [lhCboImages, setLhCboImages] = useState([]);
   const [lhCboImageIndex, setLhCboImageIndex] = useState(0);
@@ -123,29 +116,29 @@ export default function DashboardHomeTab({
   const [uploadedImageName, setUploadedImageName] = useState("");
   const [uploadedImageDate, setUploadedImageDate] = useState("");
   const [uploadedImageUri, setUploadedImageUri] = useState("");
-  const [supportStage, setSupportStage] = useState("Present Support");
+  const [supportStage, setSupportStage] = useState("");
   const [activityProfile, setActivityProfile] = useState({
-    activityName: "Farm Activity",
+    activityName: "",
     areaQuantity: "",
-    areaUnit: "Bigha",
-    activityMode: "Kharif",
-    seasonality: "Seasonal",
-    period: "3",
-    landType: "Plain",
-    productionName: "Crop",
+    areaUnit: "",
+    activityMode: "",
+    seasonality: "",
+    period: "",
+    landType: "",
+    productionName: "",
     productionQty: "",
-    productionUnit: "KG",
+    productionUnit: "",
     totalLivestock: "",
     waterbodyArea: "",
-    waterbodyType: "Canal"
+    waterbodyType: ""
   });
   const [nonFarmEnterprise, setNonFarmEnterprise] = useState({
     enterpriseName: "",
-    setupType: "Homebased",
-    enterpriseLevel: "Primary",
-    signboardMounted: "Yes",
+    setupType: "",
+    enterpriseLevel: "",
+    signboardMounted: "",
     totalEmployment: "",
-    marketLinked: "Local",
+    marketLinked: "",
     gstNo: "",
     gstRenewalDate: "",
     panNo: "",
@@ -158,36 +151,36 @@ export default function DashboardHomeTab({
     tinRenewalDate: ""
   });
   const [technicalSupportForm, setTechnicalSupportForm] = useState({
-    havingSkillTraining: "Yes",
-    skillTrade: "Goat Rearing",
+    havingSkillTraining: "",
+    skillTrade: "",
     skillDate: "",
-    skillThrough: "NGO",
-    havingEdpTraining: "No",
-    edpTrade: "Tailoring",
+    skillThrough: "",
+    havingEdpTraining: "",
+    edpTrade: "",
     edpDate: "",
-    edpThrough: "Block Team",
-    trainingRequirement: "Yes",
-    trainingRequiredTrade: "Food Processing"
+    edpThrough: "",
+    trainingRequirement: "",
+    trainingRequiredTrade: ""
   });
   const [financialSupportForm, setFinancialSupportForm] = useState({
-    activityOfMember: "Goat Rearing",
-    financialSupportRequired: true,
-    loanCyclePreferred: "Cycle 1"
+    activityOfMember: "",
+    financialSupportRequired: false,
+    loanCyclePreferred: ""
   });
   const [pastSupportForm, setPastSupportForm] = useState({
-    topActivity: "Goat Rearing",
+    topActivity: "",
     topAmount: "",
-    topLoanThrough: "CIF",
-    bottomActivity: "Poultry",
+    topLoanThrough: "",
+    bottomActivity: "",
     bottomAmount: "",
-    bottomLoanThrough: "Bank Loan",
-    interestRate: "12",
+    bottomLoanThrough: "",
+    interestRate: "",
     repaymentCompleted: "",
-    transactionStatus: "Pending"
+    transactionStatus: ""
   });
   const [transactionDetailsForm, setTransactionDetailsForm] = useState({
     presentMonthLoanRepaymentStatus: "",
-    paymentDetailsBy: "CIF",
+    paymentDetailsBy: "",
     paymentSlipName: "",
     principalPaid: "",
     interestPaid: "",
@@ -223,17 +216,17 @@ export default function DashboardHomeTab({
   const graphData = {
     visits: {
       title: "visits",
-      values: [12, 18, 15, 22, 28, 25, 30],
+      values: [0, 0, 0, 0, 0, 0, 0],
       color: "#3b67b8"
     },
     members: {
       title: "members",
-      values: [5, 8, 12, 10, 15, 18, 20],
+      values: [0, 0, 0, 0, 0, 0, 0],
       color: "#0f766e"
     },
     honorarium: {
       title: "honorarium",
-      values: [5000, 7500, 6000, 8000, 9500, 10000, 12000],
+      values: [0, 0, 0, 0, 0, 0, 0],
       color: "#f97316"
     }
   };
@@ -266,10 +259,10 @@ export default function DashboardHomeTab({
         unit: "members",
         labels: ["Assigned", "Visited", "Revisit", "Pending"],
         values: [
-          30,
-          Number(dashboardMetrics.totalMembersVisited || 18),
-          7,
-          5
+          Number(dashboardMetrics.shgMembersAssigned || 0),
+          Number(dashboardMetrics.totalMembersVisited || 0),
+          0,
+          0
         ],
         colors: ["#1d4ed8", "#0891b2", "#16a34a", "#f59e0b"]
       },
@@ -278,9 +271,9 @@ export default function DashboardHomeTab({
         unit: "amount",
         labels: ["Received", "To be Claimed", "Expected Bonus"],
         values: [
-          Number(dashboardMetrics.honorariumReceived || 8500),
-          Number(dashboardMetrics.honorariumToBeClaimed || 3200),
-          1200
+          Number(dashboardMetrics.honorariumReceived || 0),
+          Number(dashboardMetrics.honorariumToBeClaimed || 0),
+          0
         ],
         colors: ["#f97316", "#22c55e", "#3b82f6"]
       }
@@ -623,11 +616,11 @@ export default function DashboardHomeTab({
 
           <View style={neStyles.fieldBox}>
             <Text style={neStyles.fieldLabel}>GP/VC Name:</Text>
-            <Text style={neStyles.fieldValue}>{user.gpVcName || "GP-A"}</Text>
+            <Text style={neStyles.fieldValue}>{user.gpVcName || "-"}</Text>
           </View>
           <View style={neStyles.fieldBox}>
             <Text style={neStyles.fieldLabel}>Village Name:</Text>
-            <Text style={neStyles.fieldValue}>{user.villageName || "Village 1"}</Text>
+            <Text style={neStyles.fieldValue}>{user.villageName || "-"}</Text>
           </View>
 
           <View style={neStyles.selectStrip}>
@@ -1026,7 +1019,7 @@ export default function DashboardHomeTab({
   }
 
   if (homeView === "lhActivityFarm") {
-    const activityNameOptions = ["Farm Activity", "Vegetable Farming", "Integrated Farming"];
+    const activityNameOptions = [];
     const unitAreaOptions = ["Bigha", "Acre", "Hectare"];
     const typeOptions = ["Kharif", "Rabi", "Perennial"];
     const seasonOptions = ["Seasonal", "Summer", "Winter", "Rainy"];
@@ -1222,7 +1215,7 @@ export default function DashboardHomeTab({
   }
 
   if (homeView === "lhActivityNonFarm") {
-    const setupTypeOptions = ["Homebased", "Commercial"];
+    const setupTypeOptions = [];
     const yesNoOptions = ["Yes", "No"];
     const marketLinkedOptions = ["Local", "Block", "District", "State", "National"];
 
@@ -1473,7 +1466,7 @@ export default function DashboardHomeTab({
   }
 
   if (homeView === "lhActivityLivestock") {
-    const activityNameOptions = ["Goat Rearing", "Poultry", "Dairy"];
+    const activityNameOptions = [];
     const productionOptions = ["Milk", "Egg", "Meat"];
     const productionUnitOptions = ["Litre", "KG", "Quintal", "Nos"];
 
@@ -1954,7 +1947,7 @@ export default function DashboardHomeTab({
         <View style={[pageStyles.frame, lhGuideStyles.frame]}>
           <View style={lhGuideStyles.headerCard}>
             <Text style={lhGuideStyles.headerLine}>LH CBO Name: {selectedLhCboName}</Text>
-            <Text style={lhGuideStyles.headerLine}>GP/VC Name: {user.gpVcName || "GP-A"}</Text>
+            <Text style={lhGuideStyles.headerLine}>GP/VC Name: {user.gpVcName || "-"}</Text>
           </View>
 
           <View style={lhGuideStyles.formCard}>
@@ -2045,7 +2038,7 @@ export default function DashboardHomeTab({
             <Text style={lhcboStatusStyles.headerLine}>
               {headerNameMap[homeView]}: {selectedLhCboName}
             </Text>
-            <Text style={lhcboStatusStyles.headerLine}>GP/VC Name: {user.gpVcName || "GP-A"}</Text>
+            <Text style={lhcboStatusStyles.headerLine}>GP/VC Name: {user.gpVcName || "-"}</Text>
           </View>
 
           <View style={lhcboStatusStyles.contentCard}>
@@ -2165,8 +2158,8 @@ export default function DashboardHomeTab({
 
   if (homeView === "technicalSupportTech") {
     const yesNoOptions = ["Yes", "No"];
-    const tradeOptions = ["Goat Rearing", "Poultry", "Tailoring", "Food Processing"];
-    const throughOptions = ["NGO", "Block Team", "District Team", "CRP Team"];
+    const tradeOptions = [];
+    const throughOptions = [];
 
     return (
       <View style={pageStyles.screen}>
@@ -2305,7 +2298,7 @@ export default function DashboardHomeTab({
   }
 
   if (homeView === "technicalSupportFinancial") {
-    const activityOptions = ["Goat Rearing", "Poultry", "Tailoring", "Fishery"];
+    const activityOptions = [];
     const loanCycleOptions = ["Cycle 1", "Cycle 2", "Cycle 3"];
 
     return (
@@ -2388,8 +2381,8 @@ export default function DashboardHomeTab({
   }
 
   if (homeView === "technicalSupportPast") {
-    const activityOptions = ["Goat Rearing", "Poultry", "Tailoring", "Fishery"];
-    const sourceOptions = ["CIF", "RF", "Bank Loan", "PMFME"];
+    const activityOptions = [];
+    const sourceOptions = [];
     const rateOptions = ["8", "10", "12", "14"];
     const statusOptions = ["Pending", "Completed"];
     const topBalance = Math.max(
@@ -2539,7 +2532,7 @@ export default function DashboardHomeTab({
   }
 
   if (homeView === "technicalSupportTransaction") {
-    const paymentByOptions = ["CIF", "RF", "Bank Loan", "PMFME"];
+    const paymentByOptions = [];
     const principalDue = Number(pastSupportForm.bottomAmount) || 0;
     const interestDue = Number(((principalDue * (Number(pastSupportForm.interestRate) || 0)) / 100).toFixed(2));
     const totalDue = Number((principalDue + interestDue).toFixed(2));
