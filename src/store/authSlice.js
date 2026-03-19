@@ -5,7 +5,9 @@ const initialState = {
   loggedIn: false,
   lokosId: "",
   role: "CRP",
-  error: ""
+  error: "",
+  signupStatus: "idle", // 'idle' | 'loading' | 'success' | 'error'
+  signupError: ""
 };
 
 const authSlice = createSlice({
@@ -27,9 +29,34 @@ const authSlice = createSlice({
       state.role = role;
       state.error = "";
     },
-    logout: () => initialState
+    logout: () => initialState,
+    signupStart: (state) => {
+      state.signupStatus = "loading";
+      state.signupError = "";
+    },
+    signupSuccess: (state, action) => {
+      state.signupStatus = "success";
+      state.signupError = "";
+      // Optionally set pending login state here
+    },
+    signupFailure: (state, action) => {
+      state.signupStatus = "error";
+      state.signupError = action.payload || "Signup failed";
+    },
+    clearSignupError: (state) => {
+      state.signupStatus = "idle";
+      state.signupError = "";
+    }
   }
 });
 
-export const { setLanguage, login, logout } = authSlice.actions;
+export const { 
+  setLanguage, 
+  login, 
+  logout,
+  signupStart,
+  signupSuccess,
+  signupFailure,
+  clearSignupError 
+} = authSlice.actions;
 export default authSlice.reducer;

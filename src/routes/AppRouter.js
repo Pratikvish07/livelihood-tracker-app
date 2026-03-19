@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Alert, SafeAreaView, ScrollView, View } from "react-native";
+import { useDispatch, useSelector } from "react-redux";
 import BottomNav from "../components/BottomNav";
 import TrlmHeader from "../components/TrlmHeader";
 import DashboardHomeTab from "../screens/tabs/DashboardHomeTab.js";
@@ -21,6 +22,12 @@ import {
   isPasswordStrong
 } from "../utils/appCalculations";
 import { loginUser, submitCrpSignup } from "../services/masterApi";
+import {
+  signupStart,
+  signupSuccess,
+  signupFailure,
+  clearSignupError
+} from "../store/authSlice";
 
 export default function AppRouter() {
   const [step, setStep] = useState("splash");
@@ -71,8 +78,9 @@ export default function AppRouter() {
   });
 
   const [alerts, setAlerts] = useState([]);
-  const [signupSubmitting, setSignupSubmitting] = useState(false);
-  const [signupResponse, setSignupResponse] = useState({ type: "", message: "" });
+  const dispatch = useDispatch();
+  const signupStatus = useSelector((state) => state.auth.signupStatus);
+  const signupError = useSelector((state) => state.auth.signupError);
   const [loginSubmitting, setLoginSubmitting] = useState(false);
   const [pendingApprovalCrpId, setPendingApprovalCrpId] = useState("");
 
@@ -490,15 +498,15 @@ export default function AppRouter() {
       ) : null}
 
       {step === "login" ? (
-        <LoginScreen
+      <LoginScreen
           loginForm={loginForm}
           setLoginForm={setLoginForm}
           onLogin={onLogin}
           signupForm={signupForm}
           setSignupForm={setSignupForm}
           onSignup={onSignup}
-          signupSubmitting={signupSubmitting}
-          signupResponse={signupResponse}
+          signupStatus={signupStatus}
+          signupError={signupError}
           loginSubmitting={loginSubmitting}
         />
       ) : null}
