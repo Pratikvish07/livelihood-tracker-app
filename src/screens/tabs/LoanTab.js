@@ -17,7 +17,12 @@ function Text({ children, ...props }) {
 export default function LoanTab({ loan, setLoan, onSaveLoan, onRepay, onNotify }) {
   return (
     <View style={styles.tabContent}>
-      <View style={styles.rowWrap}>
+      <View style={styles.loanHeroCard}>
+        <Text style={styles.loanHeroTitle}>Loan Services</Text>
+        <Text style={styles.loanHeroSubtitle}>
+          Track sanction, repayment, and escalations from one guided workflow.
+        </Text>
+        <View style={styles.loanSegmentWrap}>
         {LOAN_SCREENS.map((item) => (
           <Pill
             key={item}
@@ -26,10 +31,11 @@ export default function LoanTab({ loan, setLoan, onSaveLoan, onRepay, onNotify }
             onPress={() => setLoan((prev) => ({ ...prev, screen: item }))}
           />
         ))}
+        </View>
       </View>
 
       {loan.screen === "Add Loan" ? (
-        <View style={styles.card}>
+        <View style={styles.govPanelCard}>
           <Text style={styles.cardTitle}>Add Loan Screen</Text>
           <LabelInput
             label="Loan Amount"
@@ -68,7 +74,7 @@ export default function LoanTab({ loan, setLoan, onSaveLoan, onRepay, onNotify }
       ) : null}
 
       {loan.screen === "Repayment" ? (
-        <View style={styles.card}>
+        <View style={styles.govPanelCard}>
           <Text style={styles.cardTitle}>Repayment Entry Screen</Text>
           <LabelInput
             label="EMI Amount"
@@ -101,7 +107,7 @@ export default function LoanTab({ loan, setLoan, onSaveLoan, onRepay, onNotify }
       ) : null}
 
       {loan.screen === "Alerts" ? (
-        <View style={styles.card}>
+        <View style={styles.alertPanelCard}>
           <Text style={styles.cardTitle}>Loan Alert Screen</Text>
           <Text style={styles.badgeAlert}>Overdue Badge</Text>
           <Text style={styles.infoLine}>{`Days Delayed: ${loan.daysDelayed}`}</Text>

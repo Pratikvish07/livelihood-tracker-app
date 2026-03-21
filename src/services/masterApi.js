@@ -7,12 +7,13 @@ export const API_ENDPOINTS = {
     districts: "/api/master/districts",
     blocksByDistrict: (districtId) => `/api/master/block/${districtId}`,
     gpsByBlock: (blockId) => `/api/master/gp/${blockId}`,
-    villagesByGp: (gpId) => `/api/master/village/${gpId}`
+    villagesByGp: (gpId) => `/api/master/village/${gpId}`,
+    crpTypes: process.env.EXPO_PUBLIC_CRP_TYPES_PATH || "/api/crptype"
   },
   auth: {
     crpSignup:
       process.env.EXPO_PUBLIC_CRP_SIGNUP_PATH || "/api/auth/crp/signup",
-    login: process.env.EXPO_PUBLIC_LOGIN_PATH || ""
+    login: process.env.EXPO_PUBLIC_LOGIN_PATH || "/api/auth/crp/login"
   }
 };
 
@@ -147,7 +148,7 @@ function mapOption(item, idKeys, nameKeys) {
 
   return {
     id,
-    name: name || ""
+    name: typeof name === "string" ? name.trim() : ""
   };
 }
 
@@ -208,6 +209,17 @@ export async function fetchVillagesByGp(gpId) {
   ]);
 }
 
+export async function fetchCrpTypes() {
+  const payload = await executeRequest(API_ENDPOINTS.master.crpTypes, "CRP types");
+  return mapCollection(payload, ["crpTypeId", "CRPTypeId", "CrpTypeId", "id", "value"], [
+    "crpTypeName",
+    "CRPTypeName",
+    "CrpTypeName",
+    "name",
+    "label"
+  ]);
+}
+
 export async function submitCrpSignup(payload) {
   return executeRequest(API_ENDPOINTS.auth.crpSignup, "CRP signup", {
     method: "POST",
@@ -219,12 +231,6 @@ export async function submitCrpSignup(payload) {
 }
 
 export async function loginUser(payload) {
-  if (!API_ENDPOINTS.auth.login) {
-    throw new Error(
-      "Login API path is not configured yet. Share the login endpoint and request body format, then add EXPO_PUBLIC_LOGIN_PATH in .env."
-    );
-  }
-
   return executeRequest(API_ENDPOINTS.auth.login, "login", {
     method: "POST",
     headers: {
@@ -233,6 +239,3 @@ export async function loginUser(payload) {
     body: JSON.stringify(payload)
   });
 }
-
-
-

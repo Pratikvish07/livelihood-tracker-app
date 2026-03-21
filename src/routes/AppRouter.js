@@ -23,6 +23,9 @@ import {
 } from "../utils/appCalculations";
 import { loginUser, submitCrpSignup } from "../services/masterApi";
 import {
+  loginSuccess,
+  setAuthError,
+  logout,
   signupStart,
   signupSuccess,
   signupFailure,
@@ -57,7 +60,8 @@ export default function AppRouter() {
     confirmPassword: "",
     contactNo: "",
     email: "",
-    crpTypes: [],
+    crpTypes: "",
+    shgId: "",
     pictureFile: ""
   });
 
@@ -83,6 +87,11 @@ export default function AppRouter() {
   const signupError = useSelector((state) => state.auth.signupError);
   const [loginSubmitting, setLoginSubmitting] = useState(false);
   const [pendingApprovalCrpId, setPendingApprovalCrpId] = useState("");
+  const [signupApiModal, setSignupApiModal] = useState({
+    visible: false,
+    title: "",
+    message: ""
+  });
 
   const [activities] = useState([]);
 
@@ -209,11 +218,12 @@ export default function AppRouter() {
     const identity = loginForm.identity.trim();
     const payload = {
       crpId: identity,
-      passwordhash: loginForm.password
+      passwordHash: loginForm.password
     };
 
     try {
       setLoginSubmitting(true);
+      dispatch(setAuthError(""));
       const response = await loginUser(payload);
 
       if (isApprovalPendingStatus(response)) {
@@ -229,6 +239,7 @@ export default function AppRouter() {
         response?.role || response?.userRole || response?.designation || detectRole(resolvedIdentity);
       const resolvedName =
         response?.name || response?.fullName || response?.userName || user.name || identity;
+      const token = typeof response?.token === "string" ? response.token : "";
 
       setUser({
         identity: resolvedIdentity,
@@ -238,13 +249,22 @@ export default function AppRouter() {
         gpVcName: response?.gpVcName || response?.gpName || user.gpVcName || "",
         villageName:
           response?.villageName || response?.village || user.villageName || "",
-        language
+        language,
+        token
       });
+      dispatch(
+        loginSuccess({
+          crpId: resolvedIdentity,
+          role: resolvedRole,
+          token
+        })
+      );
 
       setActiveTab("Home");
       setHomeView("dashboard");
       setStep("dashboard");
     } catch (error) {
+      dispatch(setAuthError(error.message || t("Unable to login right now.")));
       Alert.alert(t("Login error"), error.message || t("Unable to login right now."));
     } finally {
       setLoginSubmitting(false);
@@ -252,7 +272,7 @@ export default function AppRouter() {
   };
 
   const onSignup = async (generatedCrpId, currentLocation) => {
-    setSignupResponse({ type: "", message: "" });
+    dispatch(clearSignupError());
     if (!signupForm.name.trim()) {
       Alert.alert(t("Validation"), t("Name is required."));
       return;
@@ -298,7 +318,7 @@ export default function AppRouter() {
       return;
     }
 
-    if (signupForm.crpTypes.length === 0) {
+    if (!signupForm.crpTypes) {
       // Keep UI validation permissive until CRP type master API is wired.
     }
 
@@ -308,30 +328,45 @@ export default function AppRouter() {
     }
 
     const payload = {
-      fullName: signupForm.name.trim(),
-      aadhaarNo: signupForm.uid.trim(),
-      lokoSId: signupForm.lokosId.trim(),
+      fullName: String(signupForm.name?.trim() || ""),
+      aadhaarNo: String(signupForm.uid?.trim() || ""),
+      lokOSId: String(signupForm.lokosId?.trim() || ""),
       villageId: Number(signupForm.villageId) || 0,
       blockId: Number(signupForm.blockId) || 0,
-      contactNo: signupForm.contactNo,
-      emailId: signupForm.email,
-      password: signupForm.password,
-      crpTypeId: Number(signupForm.crpTypes[0]) || 0,
-      shgId: 0,
-      picturePath: signupForm.pictureFile,
+      contactNo: String(signupForm.contactNo || ""),
+      emailId: String(signupForm.email?.trim().toLowerCase() || ""),
+      password: String(signupForm.password || ""),
+      crpTypeId: Number(signupForm.crpTypes) || 0,
+      shgId: Number(signupForm.shgId) || 0,
+      picturePath: String(signupForm.pictureFile || ""),
       latitude: Number(currentLocation?.latitude) || 0,
       longitude: Number(currentLocation?.longitude) || 0
     };
 
+    const signupDebugPayload = {
+      districtId: Number(signupForm.districtId) || 0,
+      districtName: String(signupForm.district || ""),
+      ...payload
+    };
+
+    console.log("CRP signup payload:", signupDebugPayload);
+
     try {
-      setSignupSubmitting(true);
+      dispatch(signupStart());
       const response = await submitCrpSignup(payload);
+      console.log("CRP signup response:", response);
+      const responseDump =
+        typeof response === "string"
+          ? response
+          : JSON.stringify(response, null, 2);
       const responseMessage =
-        typeof response?.message === "string"
-          ? response.message
-          : typeof response === "string"
-            ? response
-            : "";
+        typeof response === "string"
+          ? response
+          : response?.message ||
+            response?.status ||
+            response?.title ||
+            response?.details ||
+            "Going for Block Staff Approval";
       const createdIdentity =
         response?.crpId ||
         response?.CRPId ||
@@ -362,28 +397,28 @@ export default function AppRouter() {
       const signupSuccessMessage =
         extractCrpId(responseMessage)
           ? `${t("Generated CRP ID")}: ${createdIdentity}\n${t("Please wait for admin approval before logging in.")}`
-          : responseMessage || `${t("Generated CRP ID")}: ${createdIdentity}`;
+          : responseMessage;
 
-      setSignupResponse({
-        type: "success",
-        message: signupSuccessMessage
+      dispatch(signupSuccess({ crpId: createdIdentity, message: signupSuccessMessage }));
+      setSignupApiModal({
+        visible: true,
+        title: t("Signup API Response"),
+        message:
+          responseMessage === responseDump
+            ? responseMessage
+            : `${responseMessage}\n\n${responseDump}`
       });
-
-      Alert.alert(
-        t("Registration submitted"),
-        signupSuccessMessage
-      );
       setHomeView("dashboard");
       setActiveTab("Home");
       setStep("login");
     } catch (error) {
-      setSignupResponse({
-        type: "error",
-        message: error.message || t("Unable to create CRP ID.")
+      const errorMessage = error.message || t("Unable to create CRP ID.");
+      dispatch(signupFailure(errorMessage));
+      setSignupApiModal({
+        visible: true,
+        title: t("Signup API Response"),
+        message: errorMessage
       });
-      Alert.alert(t("Signup error"), error.message || t("Unable to create CRP ID."));
-    } finally {
-      setSignupSubmitting(false);
     }
   };
 
@@ -454,6 +489,7 @@ export default function AppRouter() {
         text: t("Logout"),
         style: "destructive",
         onPress: () => {
+          dispatch(logout());
           setStep("login");
           setHomeView("dashboard");
           setActiveTab("Home");
@@ -508,11 +544,21 @@ export default function AppRouter() {
           signupStatus={signupStatus}
           signupError={signupError}
           loginSubmitting={loginSubmitting}
+          signupApiModal={signupApiModal}
+          onCloseSignupApiModal={() =>
+            setSignupApiModal({
+              visible: false,
+              title: "",
+              message: ""
+            })
+          }
         />
       ) : null}
 
       {step === "dashboard" ? (
         <View style={styles.dashboardWrap}>
+          <View pointerEvents="none" style={styles.dashboardGlowTop} />
+          <View pointerEvents="none" style={styles.dashboardGlowBottom} />
           <View style={styles.dashboardHeaderWrap}>
             <View style={styles.languageTopBand} />
             <TrlmHeader
@@ -524,38 +570,40 @@ export default function AppRouter() {
               compact
             />
           </View>
-          <ScrollView contentContainerStyle={styles.screenPad}>
-            {activeTab === "Home" ? (
-              <DashboardHomeTab
-                user={user}
-                dashboardMetrics={dashboardMetrics}
-                workingReport={workingReport}
-                setWorkingReport={setWorkingReport}
-                onSubmitWorkingReport={onSubmitWorkingReport}
-                onOpenWorkingReport={onOpenWorkingReport}
-                onOpenShgMember={onOpenShgMember}
-                onOpenLhCboActivity={onOpenLhCboActivity}
-                onOpenNewEnrolment={onOpenNewEnrolment}
-                onOpenUpdateData={onOpenUpdateData}
-                alerts={alerts}
-                activities={activities}
-                homeView={homeView}
-                onBackToDashboard={() => setHomeView("dashboard")}
-              />
-            ) : null}
-            {activeTab === "Loan" ? (
-              <LoanTab
-                loan={loan}
-                setLoan={setLoan}
-                onSaveLoan={onSaveLoan}
-                onRepay={onRepay}
-                onNotify={onNotify}
-              />
-            ) : null}
-            {activeTab === "Profile" ? (
-              <ProfileTab user={user} onLogout={onLogout} />
-            ) : null}
-          </ScrollView>
+          <View style={styles.dashboardContentShell}>
+            <ScrollView contentContainerStyle={styles.screenPad}>
+              {activeTab === "Home" ? (
+                <DashboardHomeTab
+                  user={user}
+                  dashboardMetrics={dashboardMetrics}
+                  workingReport={workingReport}
+                  setWorkingReport={setWorkingReport}
+                  onSubmitWorkingReport={onSubmitWorkingReport}
+                  onOpenWorkingReport={onOpenWorkingReport}
+                  onOpenShgMember={onOpenShgMember}
+                  onOpenLhCboActivity={onOpenLhCboActivity}
+                  onOpenNewEnrolment={onOpenNewEnrolment}
+                  onOpenUpdateData={onOpenUpdateData}
+                  alerts={alerts}
+                  activities={activities}
+                  homeView={homeView}
+                  onBackToDashboard={() => setHomeView("dashboard")}
+                />
+              ) : null}
+              {activeTab === "Loan" ? (
+                <LoanTab
+                  loan={loan}
+                  setLoan={setLoan}
+                  onSaveLoan={onSaveLoan}
+                  onRepay={onRepay}
+                  onNotify={onNotify}
+                />
+              ) : null}
+              {activeTab === "Profile" ? (
+                <ProfileTab user={user} onLogout={onLogout} />
+              ) : null}
+            </ScrollView>
+          </View>
           <BottomNav active={activeTab} setActive={setActiveTab} />
         </View>
       ) : null}
@@ -563,9 +611,3 @@ export default function AppRouter() {
     </I18nProvider>
   );
 }
-
-
-
-
-
-

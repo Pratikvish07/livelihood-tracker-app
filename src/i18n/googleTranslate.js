@@ -39,8 +39,7 @@ export async function translateBatch(language, texts) {
 
   try {
     const response = await fetch(
-      `
-      \ey=${GOOGLE_TRANSLATE_API_KEY}`,
+      `https://translation.googleapis.com/language/translate/v2?key=${GOOGLE_TRANSLATE_API_KEY}`,
       {
         method: "POST",
         headers: {
@@ -49,6 +48,7 @@ export async function translateBatch(language, texts) {
         body: JSON.stringify({
           q: uncachedTexts,
           target: code,
+          source: "en",
           format: "text"
         })
       }

@@ -4,7 +4,9 @@ const initialState = {
   language: "English",
   loggedIn: false,
   lokosId: "",
+  crpId: "",
   role: "CRP",
+  token: "",
   error: "",
   signupStatus: "idle", // 'idle' | 'loading' | 'success' | 'error'
   signupError: ""
@@ -17,17 +19,16 @@ const authSlice = createSlice({
     setLanguage: (state, action) => {
       state.language = action.payload;
     },
-    login: (state, action) => {
-      const { lokosId, role } = action.payload;
-      const trimmed = (lokosId || "").trim().toUpperCase();
-      if (!trimmed || !trimmed.startsWith("LOKOS-")) {
-        state.error = "LokOS ID must start with LOKOS-";
-        return;
-      }
+    loginSuccess: (state, action) => {
+      const { crpId, role, token } = action.payload || {};
       state.loggedIn = true;
-      state.lokosId = trimmed;
-      state.role = role;
+      state.crpId = String(crpId || "").trim().toUpperCase();
+      state.role = role || "CRP";
+      state.token = token || "";
       state.error = "";
+    },
+    setAuthError: (state, action) => {
+      state.error = action.payload || "";
     },
     logout: () => initialState,
     signupStart: (state) => {
@@ -52,7 +53,8 @@ const authSlice = createSlice({
 
 export const { 
   setLanguage, 
-  login, 
+  loginSuccess,
+  setAuthError,
   logout,
   signupStart,
   signupSuccess,

@@ -39,7 +39,17 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
-    elevation: 3
+    elevation: 3,
+    overflow: "hidden"
+  },
+  languageHeroAura: {
+    position: "absolute",
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: "rgba(15,118,110,0.12)",
+    top: -120,
+    right: -80
   },
   languageHeroHeader: {
     flexDirection: "row",
@@ -115,7 +125,30 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18
   },
+  languagePillBanner: {
+    alignSelf: "flex-start",
+    backgroundColor: "#e0f2fe",
+    borderWidth: 1,
+    borderColor: "#93c5fd",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6
+  },
+  languagePillBannerText: {
+    color: "#1d4ed8",
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+    textTransform: "uppercase"
+  },
+  languageGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10
+  },
   languageOption: {
+    width: "48%",
+    minHeight: 92,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -151,6 +184,14 @@ const styles = StyleSheet.create({
   languageOptionTextActive: {
     color: "#ffffff"
   },
+  languageOptionSubtext: {
+    color: "#64748b",
+    fontSize: 12,
+    fontWeight: "600"
+  },
+  languageOptionSubtextActive: {
+    color: "#dbeafe"
+  },
   languageDot: {
     width: 22,
     height: 22,
@@ -182,7 +223,7 @@ const styles = StyleSheet.create({
   },
   trlmHeaderTopRow: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     justifyContent: "space-between",
     gap: 12
   },
@@ -251,12 +292,14 @@ const styles = StyleSheet.create({
     lineHeight: 18
   },
   trlmLogoutButton: {
-    minWidth: 82,
+    minWidth: 106,
     borderRadius: 14,
     backgroundColor: "#13213a",
     paddingHorizontal: 14,
     paddingVertical: 12,
+    flexDirection: "row",
     alignItems: "center",
+    gap: 8,
     justifyContent: "center",
     shadowColor: "#13213a",
     shadowOffset: { width: 0, height: 4 },
@@ -268,6 +311,11 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 13,
     fontWeight: "800"
+  },
+  trlmLogoutIcon: {
+    color: "#bfdbfe",
+    fontSize: 13,
+    fontWeight: "900"
   },
   centerScreen: {
     flex: 1,
@@ -501,10 +549,15 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: "#fff",
     borderRadius: 14,
-    padding: 12,
+    padding: 14,
     borderWidth: 1,
     borderColor: "#dbe3ea",
-    gap: 10
+    gap: 10,
+    shadowColor: "#0f172a",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 3
   },
   diagramCard: {
     backgroundColor: "#fff",
@@ -611,10 +664,45 @@ const styles = StyleSheet.create({
     color: "#fff"
   },
   dashboardWrap: {
-    flex: 1
+    flex: 1,
+    position: "relative",
+    backgroundColor: "#e7eef6"
+  },
+  dashboardGlowTop: {
+    position: "absolute",
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    backgroundColor: "rgba(59,130,246,0.12)",
+    top: -90,
+    right: -80
+  },
+  dashboardGlowBottom: {
+    position: "absolute",
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    backgroundColor: "rgba(13,148,136,0.1)",
+    bottom: 30,
+    left: -90
+  },
+  dashboardContentShell: {
+    flex: 1,
+    marginHorizontal: 10,
+    marginBottom: 76,
+    borderRadius: 26,
+    backgroundColor: "rgba(255,255,255,0.62)",
+    borderWidth: 1,
+    borderColor: "#dbe5ef",
+    shadowColor: "#0f172a",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 4,
+    overflow: "hidden"
   },
   tabContent: {
-    gap: 10
+    gap: 12
   },
   dashboardHeaderRow: {
     flexDirection: "row",
@@ -733,6 +821,111 @@ const styles = StyleSheet.create({
   profileBtnStack: {
     gap: 8,
     width: "60%"
+  },
+  profileHeroCard: {
+    backgroundColor: "#102a43",
+    borderRadius: 20,
+    padding: 18,
+    flexDirection: "row",
+    gap: 14,
+    alignItems: "center",
+    shadowColor: "#102a43",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18,
+    shadowRadius: 14,
+    elevation: 4
+  },
+  profileAvatar: {
+    width: 62,
+    height: 62,
+    borderRadius: 31,
+    backgroundColor: "#d97706",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 3,
+    borderColor: "#fde68a"
+  },
+  profileAvatarText: {
+    color: "#ffffff",
+    fontSize: 22,
+    fontWeight: "900"
+  },
+  profileHeroCopy: {
+    flex: 1,
+    gap: 4
+  },
+  profileHeroTitle: {
+    color: "#ffffff",
+    fontSize: 20,
+    fontWeight: "900"
+  },
+  profileHeroSubtitle: {
+    color: "#cbd5e1",
+    fontSize: 13,
+    fontWeight: "600"
+  },
+  profileRoleBadge: {
+    alignSelf: "flex-start",
+    marginTop: 6,
+    backgroundColor: "rgba(255,255,255,0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.18)",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5
+  },
+  profileRoleBadgeText: {
+    color: "#f8fafc",
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0.5
+  },
+  profileInfoCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#dbe3ea",
+    gap: 12
+  },
+  profileInfoRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eef2f7"
+  },
+  profileInfoLabel: {
+    color: "#64748b",
+    fontSize: 13,
+    fontWeight: "700"
+  },
+  profileInfoValue: {
+    color: "#0f172a",
+    fontSize: 14,
+    fontWeight: "800",
+    textAlign: "right",
+    flexShrink: 1,
+    marginLeft: 12
+  },
+  profileActionCard: {
+    backgroundColor: "#fffaf0",
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#fcd9a7",
+    gap: 10
+  },
+  profileActionTitle: {
+    color: "#7c2d12",
+    fontSize: 16,
+    fontWeight: "800"
+  },
+  profileActionHint: {
+    color: "#9a3412",
+    fontSize: 12,
+    lineHeight: 18
   },
   metricGrid: {
     flexDirection: "row",
@@ -871,24 +1064,101 @@ const styles = StyleSheet.create({
     color: "#1e3a8a",
     fontWeight: "800"
   },
+  loanHeroCard: {
+    backgroundColor: "#f8fbff",
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: "#cfe0ff",
+    gap: 12
+  },
+  loanHeroTitle: {
+    color: "#102a43",
+    fontSize: 20,
+    fontWeight: "900"
+  },
+  loanHeroSubtitle: {
+    color: "#52606d",
+    fontSize: 13,
+    lineHeight: 19
+  },
+  loanSegmentWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8
+  },
+  govPanelCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#dbe3ea",
+    gap: 10,
+    shadowColor: "#0f172a",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 3
+  },
+  alertPanelCard: {
+    backgroundColor: "#fff7f7",
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#fecaca",
+    gap: 10
+  },
   bottomNav: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
     flexDirection: "row",
-    backgroundColor: "#fff",
+    backgroundColor: "#fbfdff",
     borderTopWidth: 1,
     borderColor: "#dbe3ea",
-    paddingVertical: 10
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    shadowColor: "#0f172a",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 12
   },
   navItem: {
     flex: 1,
-    alignItems: "center"
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 6,
+    borderRadius: 14
+  },
+  navItemActive: {
+    backgroundColor: "#eff6ff"
+  },
+  navIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#e2e8f0",
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  navIconWrapActive: {
+    backgroundColor: "#1e3a8a"
+  },
+  navIconText: {
+    color: "#334155",
+    fontSize: 15,
+    fontWeight: "800"
+  },
+  navIconTextActive: {
+    color: "#ffffff"
   },
   navText: {
     color: "#64748b",
-    fontWeight: "600"
+    fontWeight: "700",
+    fontSize: 12
   },
   navTextActive: {
     color: "#0f766e"
@@ -897,12 +1167,32 @@ const styles = StyleSheet.create({
   // Enhanced Login/Signup Screen Styles
   loginContainer: {
     flex: 1,
-    backgroundColor: "#f1f5f9",
+    backgroundColor: "#e9eff7",
+    position: "relative",
+    overflow: "hidden"
+  },
+  authGlowPrimary: {
+    position: "absolute",
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    backgroundColor: "rgba(30,58,138,0.16)",
+    top: -80,
+    right: -90
+  },
+  authGlowSecondary: {
+    position: "absolute",
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    backgroundColor: "rgba(13,148,136,0.12)",
+    bottom: 140,
+    left: -90
   },
   loginHeader: {
-    backgroundColor: "#ffffff",
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    backgroundColor: "rgba(255,255,255,0.72)",
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
     padding: 24,
     paddingTop: 40,
     alignItems: "center",
@@ -913,10 +1203,25 @@ const styles = StyleSheet.create({
     elevation: 5,
     borderWidth: 1,
     borderColor: "#e2e8f0",
+    marginBottom: 14
   },
   loginLogoWrapper: {
     alignItems: "center",
     marginBottom: 16,
+  },
+  loginGlassChip: {
+    marginBottom: 14,
+    backgroundColor: "rgba(15,23,42,0.82)",
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 7
+  },
+  loginGlassChipText: {
+    color: "#f8fafc",
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+    textTransform: "uppercase"
   },
   loginLogoCircle: {
     width: 70,
@@ -940,6 +1245,11 @@ const styles = StyleSheet.create({
     fontSize: 22,
     letterSpacing: 2,
   },
+  loginLogoImage: {
+    width: 58,
+    height: 58,
+    borderRadius: 29
+  },
   loginAppName: {
     fontSize: 22,
     fontWeight: "800",
@@ -954,23 +1264,50 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     textAlign: "center",
   },
+  loginHeroMetricRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 16
+  },
+  loginHeroMetric: {
+    minWidth: 78,
+    backgroundColor: "rgba(255,255,255,0.82)",
+    borderWidth: 1,
+    borderColor: "#dbeafe",
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    alignItems: "center"
+  },
+  loginHeroMetricValue: {
+    color: "#1e3a8a",
+    fontSize: 14,
+    fontWeight: "900"
+  },
+  loginHeroMetricLabel: {
+    color: "#64748b",
+    fontSize: 11,
+    fontWeight: "700",
+    marginTop: 3
+  },
   loginFormArea: {
     flex: 1,
     padding: 16,
+    paddingBottom: 42
   },
   loginTabContainer: {
     flexDirection: "row",
-    backgroundColor: "#f1f5f9",
-    borderRadius: 12,
-    padding: 4,
-    marginBottom: 16,
+    backgroundColor: "rgba(255,255,255,0.6)",
+    borderRadius: 16,
+    padding: 5,
+    marginBottom: 18,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 3,
     borderWidth: 1,
-    borderColor: "#cbd5e1",
+    borderColor: "#d8e2ee",
   },
   loginTab: {
     flex: 1,
@@ -991,7 +1328,7 @@ const styles = StyleSheet.create({
   },
   loginCard: {
     backgroundColor: "#ffffff",
-    borderRadius: 16,
+    borderRadius: 24,
     padding: 20,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
@@ -1000,6 +1337,47 @@ const styles = StyleSheet.create({
     elevation: 5,
     borderWidth: 1,
     borderColor: "#e2e8f0",
+  },
+  loginCardGlass: {
+    backgroundColor: "rgba(255,255,255,0.84)"
+  },
+  responseModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(15,23,42,0.48)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20
+  },
+  responseModalCard: {
+    width: "100%",
+    maxWidth: 420,
+    maxHeight: "72%",
+    backgroundColor: "#ffffff",
+    borderRadius: 24,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: "#dbe4ef",
+    shadowColor: "#0f172a",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.16,
+    shadowRadius: 18,
+    elevation: 8,
+    gap: 14
+  },
+  responseModalTitle: {
+    color: "#102a43",
+    fontSize: 18,
+    fontWeight: "900",
+    textAlign: "center"
+  },
+  responseModalScroll: {
+    maxHeight: 260
+  },
+  responseModalMessage: {
+    color: "#334155",
+    fontSize: 14,
+    lineHeight: 21,
+    fontWeight: "600"
   },
   loginCardTitle: {
     fontSize: 18,
@@ -1010,11 +1388,28 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 1,
   },
-  loginInput: {
-    backgroundColor: "#f8fafc",
+  formRibbon: {
+    alignSelf: "center",
+    backgroundColor: "#e0ecff",
     borderWidth: 1,
-    borderColor: "#e2e8f0",
-    borderRadius: 12,
+    borderColor: "#b8d0ff",
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    marginBottom: 16
+  },
+  formRibbonText: {
+    color: "#1d4ed8",
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+    textTransform: "uppercase"
+  },
+  loginInput: {
+    backgroundColor: "rgba(248,250,252,0.95)",
+    borderWidth: 1,
+    borderColor: "#dbe4ef",
+    borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 15,
@@ -1122,10 +1517,12 @@ const styles = StyleSheet.create({
   },
   signupSectionTitle: {
     fontSize: 14,
-    fontWeight: "700",
+    fontWeight: "800",
     color: "#0f172a",
-    marginBottom: 10,
-    marginTop: 8,
+    marginBottom: 12,
+    marginTop: 0,
+    textTransform: "uppercase",
+    letterSpacing: 0.7
   },
   signupRow: {
     flexDirection: "row",
@@ -1166,6 +1563,95 @@ const styles = StyleSheet.create({
   },
   signupScrollView: {
     flex: 1,
+  },
+  formSectionCard: {
+    backgroundColor: "rgba(255,255,255,0.72)",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 14,
+    shadowColor: "#0f172a",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 2
+  },
+  dropdownWrap: {
+    gap: 8
+  },
+  dropdownTrigger: {
+    minHeight: 52,
+    borderWidth: 1,
+    borderColor: "#d7deea",
+    borderRadius: 16,
+    backgroundColor: "rgba(248,250,252,0.98)",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between"
+  },
+  dropdownTriggerOpen: {
+    borderColor: "#1e3a8a",
+    backgroundColor: "#ffffff"
+  },
+  dropdownTriggerText: {
+    flex: 1,
+    color: "#0f172a",
+    fontSize: 15,
+    fontWeight: "600",
+    paddingRight: 12
+  },
+  dropdownPlaceholder: {
+    color: "#94a3b8",
+    fontWeight: "500"
+  },
+  dropdownChevron: {
+    color: "#1e3a8a",
+    fontSize: 12,
+    fontWeight: "900"
+  },
+  dropdownMenu: {
+    borderWidth: 1,
+    borderColor: "#d7deea",
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.98)",
+    overflow: "hidden"
+  },
+  dropdownScroll: {
+    maxHeight: 220
+  },
+  dropdownOption: {
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eef2f7"
+  },
+  dropdownOptionActive: {
+    backgroundColor: "#e8efff"
+  },
+  dropdownOptionText: {
+    color: "#1e293b",
+    fontSize: 14,
+    fontWeight: "600"
+  },
+  dropdownOptionTextActive: {
+    color: "#1e3a8a"
+  },
+  dropdownDisabled: {
+    minHeight: 52,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    borderRadius: 16,
+    backgroundColor: "rgba(248,250,252,0.95)",
+    justifyContent: "center",
+    paddingHorizontal: 14
+  },
+  dropdownDisabledText: {
+    color: "#94a3b8",
+    fontSize: 14,
+    fontWeight: "500"
   },
   enhancedCard: {
     backgroundColor: "#ffffff",

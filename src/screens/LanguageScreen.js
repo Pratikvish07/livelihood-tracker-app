@@ -1,6 +1,6 @@
 import React from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
-import { LANGUAGES } from "../constants/appData";
+import { LANGUAGE_OPTIONS } from "../constants/appData";
 import HeaderText from "../components/HeaderText";
 import PrimaryButton from "../components/PrimaryButton";
 import styles from "../styles/appStyles";
@@ -13,6 +13,7 @@ export default function LanguageScreen({ language, setLanguage, onContinue }) {
     <ScrollView contentContainerStyle={styles.languageScreenPad}>
       <View style={styles.languageTopBand} />
       <View style={styles.languageHero}>
+        <View style={styles.languageHeroAura} />
         <View style={styles.languageHeroHeader}>
           <View style={styles.languageSeal}>
             <Text style={styles.languageSealText}>TR</Text>
@@ -33,32 +34,46 @@ export default function LanguageScreen({ language, setLanguage, onContinue }) {
 
       <View style={styles.languageCard}>
         <View style={styles.languageCardHeader}>
-          <Text style={styles.languageCardTitle}>Select Interface Language</Text>
+          <Text style={styles.languageCardTitle}>{t("Select Interface Language")}</Text>
           <Text style={styles.languageCardHint}>
-            This selection will be applied across the application screens.
+            {t("Pick any language and the app will translate labels dynamically using Google Translate when configured.")}
           </Text>
         </View>
 
-        {LANGUAGES.map((item) => {
-          const active = language === item;
+        <View style={styles.languagePillBanner}>
+          <Text style={styles.languagePillBannerText}>{t("Available Across India")}</Text>
+        </View>
+
+        <View style={styles.languageGrid}>
+        {LANGUAGE_OPTIONS.map((item) => {
+          const active = language === item.name;
           return (
             <Pressable
-              key={item}
+              key={item.name}
               style={[styles.languageOption, active && styles.languageOptionActive]}
-              onPress={() => setLanguage(item)}
+              onPress={() => setLanguage(item.name)}
             >
               <View style={styles.languageOptionLeft}>
                 <Text style={[styles.languageOptionPrefix, active && styles.languageOptionPrefixActive]}>
                   {active ? "Selected" : "Available"}
                 </Text>
                 <Text style={[styles.languageOptionText, active && styles.languageOptionTextActive]}>
-                  {t(item)}
+                  {item.nativeName}
+                </Text>
+                <Text
+                  style={[
+                    styles.languageOptionSubtext,
+                    active && styles.languageOptionSubtextActive
+                  ]}
+                >
+                  {item.name}
                 </Text>
               </View>
               <View style={[styles.languageDot, active && styles.languageDotActive]} />
             </Pressable>
           );
         })}
+        </View>
 
         <PrimaryButton label="Continue" onPress={onContinue} />
       </View>

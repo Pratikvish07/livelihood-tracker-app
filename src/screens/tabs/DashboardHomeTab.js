@@ -2825,46 +2825,46 @@ export default function DashboardHomeTab({
 }
 
 const pageStyles = StyleSheet.create({
-  screen: { paddingVertical: 6, position: "relative" },
+  screen: { paddingVertical: 8, paddingHorizontal: 2, position: "relative" },
   bgGlowTop: {
     position: "absolute",
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: "rgba(59,130,246,0.12)",
-    top: -50,
-    right: -40
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: "rgba(59,130,246,0.14)",
+    top: -70,
+    right: -50
   },
   bgGlowBottom: {
     position: "absolute",
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: "rgba(20,184,166,0.1)",
-    bottom: -60,
-    left: -50
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: "rgba(20,184,166,0.12)",
+    bottom: -80,
+    left: -60
   },
   frame: {
-    borderRadius: 22,
+    borderRadius: 26,
     borderWidth: 1,
-    borderColor: "#94a3b8",
-    backgroundColor: "#eef2f7",
-    padding: 12,
-    gap: 10,
+    borderColor: "#d6e0eb",
+    backgroundColor: "rgba(255,255,255,0.88)",
+    padding: 14,
+    gap: 12,
     shadowColor: "#1e293b",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
     elevation: 5
   },
   topRow: { flexDirection: "row", gap: 10 },
   imageCard: {
-    width: 62,
-    height: 62,
-    borderRadius: 10,
-    backgroundColor: "#ffffff",
+    width: 68,
+    height: 68,
+    borderRadius: 18,
+    backgroundColor: "#fffdf8",
     borderWidth: 1,
-    borderColor: "#cbd5e1",
+    borderColor: "#dbe3ea",
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#0f172a",
@@ -2873,17 +2873,17 @@ const pageStyles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 2
   },
-  imageText: { color: "#334155", fontSize: 9, fontWeight: "800", textAlign: "center" },
+  imageText: { color: "#334155", fontSize: 10, fontWeight: "800", textAlign: "center" },
   infoCard: {
     flex: 1,
-    backgroundColor: "#64748b",
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
+    backgroundColor: "#102a43",
+    borderRadius: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     justifyContent: "center",
-    gap: 2
+    gap: 4
   },
-  infoLine: { color: "#ffffff", fontSize: 12, fontWeight: "700" },
+  infoLine: { color: "#f8fafc", fontSize: 12, fontWeight: "700" },
   dropdownWrap: { position: "relative", zIndex: 10 },
   dropdownTrigger: {
     borderRadius: 9,
@@ -2910,25 +2910,24 @@ const pageStyles = StyleSheet.create({
   dropdownItemText: { color: "#1f2937", fontSize: 12, fontWeight: "700" },
   dropdownItemTextActive: { color: "#1e3a8a" },
   dashboardCard: {
-    backgroundColor: "#facc15",
+    backgroundColor: "#fff6da",
     borderWidth: 1,
-    borderColor: "#d39b00",
-    borderRadius: 18,
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    gap: 8,
+    borderColor: "#efc35c",
+    borderRadius: 22,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    gap: 10,
     shadowColor: "#a16207",
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
     elevation: 2
   },
   dashboardTitle: {
-    fontSize: 38,
+    fontSize: 34,
     textAlign: "center",
-    color: "#111827",
-    fontWeight: "800",
-    fontStyle: "italic"
+    color: "#102a43",
+    fontWeight: "900"
   },
   metricCompactCard: {
     flexDirection: "row",
@@ -3055,15 +3054,15 @@ const pageStyles = StyleSheet.create({
   },
   quickActionsCard: {
     borderWidth: 1,
-    borderColor: "#d0dae8",
-    backgroundColor: "#f8fafc",
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 10,
+    borderColor: "#dbe5ef",
+    backgroundColor: "#ffffff",
+    borderRadius: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
     shadowColor: "#0f172a",
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
     elevation: 1
   },
   quickActionsTitle: { color: "#111827", fontSize: 18, fontWeight: "800" },
@@ -3109,8 +3108,10 @@ const wrStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#6b7280",
-    backgroundColor: "#f3f4f6"
+    borderColor: "#d6e0eb",
+    backgroundColor: "#f8fbff",
+    borderRadius: 14,
+    overflow: "hidden"
   },
   metricLabel: {
     flex: 1,
@@ -3121,54 +3122,56 @@ const wrStyles = StyleSheet.create({
     fontWeight: "700"
   },
   metricValueBox: {
-    width: 56,
-    backgroundColor: "#3b67b8",
+    width: 62,
+    backgroundColor: "#1e3a8a",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 8
+    paddingVertical: 10
   },
   metricValueText: { color: "#ffffff", fontWeight: "800", fontSize: 13 },
   metricInput: {
-    width: 74,
-    backgroundColor: "#3b67b8",
+    width: 86,
+    backgroundColor: "#1e3a8a",
     color: "#ffffff",
     fontWeight: "700",
-    paddingHorizontal: 6,
-    paddingVertical: 8
+    paddingHorizontal: 8,
+    paddingVertical: 10
   },
   submitRow: { flexDirection: "row", gap: 8 },
   graphBtn: {
     flex: 1,
-    backgroundColor: "#3b67b8",
+    backgroundColor: "#1e40af",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 10,
-    borderRadius: 4
+    paddingVertical: 12,
+    borderRadius: 12
   },
   graphBtnText: { color: "#dbeafe", fontWeight: "700" },
   submitBtn: {
     width: 84,
-    backgroundColor: "#f97316",
+    backgroundColor: "#d97706",
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 4
+    borderRadius: 12
   },
   submitBtnText: { color: "#ffffff", fontWeight: "800" },
   alertRow: {
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#6b7280",
-    backgroundColor: "#f8fafc"
+    borderColor: "#d6e0eb",
+    backgroundColor: "#fffdf8",
+    borderRadius: 14
   },
   alertDot: { width: 12, height: 12, borderRadius: 6, marginHorizontal: 8, backgroundColor: "#f97316" },
   alertText: { flex: 1, fontSize: 12, color: "#1f2937", paddingVertical: 8, paddingRight: 8 },
   activityCard: {
     borderWidth: 1,
-    borderColor: "#6b7280",
-    backgroundColor: "#3b67b8",
-    padding: 12,
-    minHeight: 128
+    borderColor: "#cfe0ff",
+    backgroundColor: "#143d73",
+    padding: 14,
+    minHeight: 128,
+    borderRadius: 16
   },
   activityTitle: {
     color: "#eff6ff",
@@ -3180,10 +3183,10 @@ const wrStyles = StyleSheet.create({
   activityLine: { color: "#e2e8f0", fontSize: 12, marginTop: 2 },
   backBtn: {
     alignSelf: "flex-end",
-    backgroundColor: "#1f2937",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 6
+    backgroundColor: "#102a43",
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 12
   },
   backBtnText: { color: "#ffffff", fontSize: 11, fontWeight: "700" }
 });
@@ -3193,10 +3196,11 @@ const neStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#6b7280",
-    backgroundColor: "#f8fafc",
-    paddingHorizontal: 8,
-    paddingVertical: 6,
+    borderColor: "#d6e0eb",
+    backgroundColor: "#f8fbff",
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    borderRadius: 14,
     gap: 8
   },
   fieldLabel: {
@@ -3212,11 +3216,12 @@ const neStyles = StyleSheet.create({
     fontWeight: "700"
   },
   selectStrip: {
-    backgroundColor: "#3b67b8",
+    backgroundColor: "#143d73",
     borderWidth: 1,
-    borderColor: "#3159a5",
+    borderColor: "#1d4f91",
     alignItems: "center",
-    paddingVertical: 8
+    paddingVertical: 10,
+    borderRadius: 14
   },
   selectText: {
     color: "#dbeafe",
@@ -3229,14 +3234,14 @@ const neStyles = StyleSheet.create({
   },
   portionBtn: {
     flex: 1,
-    backgroundColor: "#3b67b8",
+    backgroundColor: "#1e40af",
     borderWidth: 1,
-    borderColor: "#3159a5",
-    borderRadius: 6,
-    minHeight: 54,
+    borderColor: "#1d4ed8",
+    borderRadius: 14,
+    minHeight: 60,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 8
+    paddingHorizontal: 10
   },
   portionBtnText: {
     color: "#ffffff",
@@ -3248,8 +3253,9 @@ const neStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#6b7280",
-    backgroundColor: "#f8fafc"
+    borderColor: "#d6e0eb",
+    backgroundColor: "#fffdf8",
+    borderRadius: 14
   },
   alertDot: {
     width: 14,
@@ -3267,10 +3273,11 @@ const neStyles = StyleSheet.create({
   },
   activityCard: {
     borderWidth: 1,
-    borderColor: "#b45309",
-    backgroundColor: "#ea7b2d",
-    padding: 12,
-    minHeight: 152
+    borderColor: "#f3c78a",
+    backgroundColor: "#b45309",
+    padding: 14,
+    minHeight: 152,
+    borderRadius: 16
   },
   activityTitle: {
     color: "#fff7ed",
@@ -3289,10 +3296,11 @@ const neStyles = StyleSheet.create({
 const smStyles = StyleSheet.create({
   fieldRow: {
     borderWidth: 1,
-    borderColor: "#9ca3af",
-    backgroundColor: "#f8fafc",
-    paddingHorizontal: 8,
-    paddingVertical: 6,
+    borderColor: "#d6e0eb",
+    backgroundColor: "#f8fbff",
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    borderRadius: 14,
     gap: 6
   },
   fieldLabel: {
@@ -3302,11 +3310,11 @@ const smStyles = StyleSheet.create({
   },
   dropdownTrigger: {
     borderWidth: 1,
-    borderColor: "#94a3b8",
-    borderRadius: 6,
+    borderColor: "#c8d5e6",
+    borderRadius: 12,
     backgroundColor: "#ffffff",
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center"
@@ -3326,8 +3334,8 @@ const smStyles = StyleSheet.create({
   dropdownMenu: {
     marginTop: 6,
     borderWidth: 1,
-    borderColor: "#94a3b8",
-    borderRadius: 6,
+    borderColor: "#c8d5e6",
+    borderRadius: 12,
     backgroundColor: "#ffffff",
     overflow: "hidden"
   },
@@ -3377,10 +3385,11 @@ const smStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#9ca3af",
-    backgroundColor: "#f8fafc",
-    paddingHorizontal: 8,
-    paddingVertical: 6,
+    borderColor: "#d6e0eb",
+    backgroundColor: "#f8fbff",
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    borderRadius: 14,
     gap: 8
   },
   readonlyLabel: {
@@ -3409,9 +3418,10 @@ const smStyles = StyleSheet.create({
   },
   previewCard: {
     borderWidth: 1,
-    borderColor: "#9ca3af",
-    backgroundColor: "#f8fafc",
-    padding: 8,
+    borderColor: "#d6e0eb",
+    backgroundColor: "#f8fbff",
+    padding: 10,
+    borderRadius: 14,
     gap: 6
   },
   previewTitle: {
@@ -3500,10 +3510,11 @@ const smStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#9ca3af",
-    backgroundColor: "#f8fafc",
-    paddingHorizontal: 8,
-    paddingVertical: 8,
+    borderColor: "#d6e0eb",
+    backgroundColor: "#f8fbff",
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    borderRadius: 14,
     gap: 8
   },
   radiusStatusIcon: {
@@ -3536,11 +3547,11 @@ const smStyles = StyleSheet.create({
   },
   checkBtn: {
     flex: 1,
-    backgroundColor: "#1d4ed8",
-    borderRadius: 6,
+    backgroundColor: "#1e40af",
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 9
+    paddingVertical: 11
   },
   checkBtnText: {
     color: "#ffffff",
@@ -3549,11 +3560,11 @@ const smStyles = StyleSheet.create({
   },
   saveBtn: {
     flex: 1,
-    backgroundColor: "#f97316",
-    borderRadius: 6,
+    backgroundColor: "#d97706",
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 9
+    paddingVertical: 11
   },
   saveBtnText: {
     color: "#ffffff",

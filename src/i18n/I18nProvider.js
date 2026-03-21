@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { getFallbackTranslation } from "./translations";
 import { getCachedTranslation, translateBatch } from "./googleTranslate";
+import { LANGUAGES } from "../constants/appData";
 
 const I18nContext = createContext({
   language: "English",
@@ -11,10 +12,11 @@ const CORE_LABELS = [
   "Language Selection",
   "Choose your preferred language",
   "Continue",
-  "English",
-  "Bengali",
-  "Hindi",
-  "Assamese",
+  "Select Interface Language",
+  "Available Across India",
+  "Pick any language and the app will translate labels dynamically using Google Translate when configured.",
+  "Government of Tripura",
+  "Tripura Rural Livelihood Mission",
   "Home",
   "Loan",
   "Profile",
@@ -29,7 +31,7 @@ const CORE_LABELS = [
   "Loading",
   "SRS Livelihood App",
   "Digital Livelihood Monitoring System"
-];
+].concat(LANGUAGES);
 
 export function I18nProvider({ language, children }) {
   const [dynamicTranslations, setDynamicTranslations] = useState({});

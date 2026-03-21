@@ -1,79 +1,59 @@
-export const LANGUAGE_CODE_MAP = {
+const LANGUAGE_CODE_MAP = {
   English: "en",
-  Bengali: "bn",
   Hindi: "hi",
-  Assamese: "as"
+  Bengali: "bn",
+  Assamese: "as",
+  Gujarati: "gu",
+  Kannada: "kn",
+  Kashmiri: "ks",
+  Konkani: "gom",
+  Malayalam: "ml",
+  Manipuri: "mni-Mtei",
+  Marathi: "mr",
+  Nepali: "ne",
+  Odia: "or",
+  Punjabi: "pa",
+  Sanskrit: "sa",
+  Santali: "sat",
+  Sindhi: "sd",
+  Tamil: "ta",
+  Telugu: "te",
+  Urdu: "ur",
+  Bodo: "brx",
+  Dogri: "doi",
+  Maithili: "mai"
 };
 
 const DICTIONARY = {
   bn: {
-    "Language Selection": "\u09ad\u09be\u09b7\u09be \u09a8\u09bf\u09b0\u09cd\u09ac\u09be\u099a\u09a8",
-    "Choose your preferred language": "\u0986\u09aa\u09a8\u09be\u09b0 \u09aa\u099b\u09a8\u09cd\u09a6\u09c7\u09b0 \u09ad\u09be\u09b7\u09be \u09ac\u09c7\u099b\u09c7 \u09a8\u09bf\u09a8",
-    Continue: "\u099a\u09be\u09b2\u09bf\u09df\u09c7 \u09af\u09be\u09a8",
-    English: "\u0987\u0982\u09b0\u09c7\u099c\u09bf",
-    Bengali: "\u09ac\u09be\u0982\u09b2\u09be",
-    Hindi: "\u09b9\u09bf\u09a8\u09cd\u09a6\u09bf",
-    Assamese: "\u0985\u09b8\u09ae\u09c0\u09df\u09be",
-    Home: "\u09b9\u09cb\u09ae",
-    SHG: "\u098f\u09b8\u098f\u0987\u099a\u099c\u09bf",
-    Loan: "\u098b\u09a3",
-    Reports: "\u09b0\u09bf\u09aa\u09cb\u09b0\u09cd\u099f",
-    Profile: "\u09aa\u09cd\u09b0\u09cb\u09ab\u09be\u0987\u09b2",
-    "Save & Next": "\u09b8\u09c7\u09ad \u0995\u09b0\u09c1\u09a8 \u0993 \u09aa\u09b0\u09ac\u09b0\u09cd\u09a4\u09c0",
-    Save: "\u09b8\u09c7\u09ad",
-    Back: "\u09ab\u09bf\u09b0\u09c7 \u09af\u09be\u09a8",
-    "Log-In": "\u09b2\u0997-\u0987\u09a8",
-    "Sign-up": "\u09b8\u09be\u0987\u09a8-\u0986\u09aa",
-    Logout: "\u09b2\u0997\u0986\u0989\u099f",
-    Loading: "\u09b2\u09cb\u09a1 \u09b9\u099a\u09cd\u099b\u09c7",
-    "SRS Livelihood App": "\u098f\u09b8\u0986\u09b0\u098f\u098f\u09b8 \u099c\u09c0\u09ac\u09bf\u0995\u09be \u0985\u09cd\u09af\u09be\u09aa",
-    "Digital Livelihood Monitoring System": "\u09a1\u09bf\u099c\u09bf\u099f\u09be\u09b2 \u099c\u09c0\u09ac\u09bf\u0995\u09be \u09ae\u09a8\u09bf\u099f\u09b0\u09bf\u0982 \u09b8\u09bf\u09b8\u09cd\u099f\u09c7\u09ae"
+    "Language Selection": "ভাষা নির্বাচন",
+    "Choose your preferred language": "আপনার পছন্দের ভাষা বেছে নিন",
+    Continue: "চালিয়ে যান",
+    "Select Interface Language": "ইন্টারফেসের ভাষা নির্বাচন করুন",
+    "Available Across India": "ভারত জুড়ে উপলভ্য",
+    "Pick any language and the app will translate labels dynamically using Google Translate when configured.": "যেকোনো ভাষা বেছে নিন, কনফিগার করা থাকলে অ্যাপটি গুগল ট্রান্সলেট ব্যবহার করে লেবেল অনুবাদ করবে।",
+    "Government of Tripura": "ত্রিপুরা সরকার",
+    "Tripura Rural Livelihood Mission": "ত্রিপুরা রুরাল লাইভলিহুড মিশন"
   },
   hi: {
-    "Language Selection": "\u092d\u093e\u0937\u093e \u091a\u092f\u0928",
-    "Choose your preferred language": "\u0905\u092a\u0928\u0940 \u092a\u0938\u0902\u0926\u0940\u0926\u093e \u092d\u093e\u0937\u093e \u091a\u0941\u0928\u0947\u0902",
-    Continue: "\u091c\u093e\u0930\u0940 \u0930\u0916\u0947\u0902",
-    English: "\u0905\u0902\u0917\u094d\u0930\u0947\u091c\u0940",
-    Bengali: "\u092c\u0902\u0917\u093e\u0932\u0940",
-    Hindi: "\u0939\u093f\u0902\u0926\u0940",
-    Assamese: "\u0905\u0938\u092e\u093f\u092f\u093e",
-    Home: "\u0939\u094b\u092e",
-    SHG: "\u090f\u0938\u090f\u091a\u091c\u0940",
-    Loan: "\u090b\u0923",
-    Reports: "\u0930\u093f\u092a\u094b\u0930\u094d\u091f",
-    Profile: "\u092a\u094d\u0930\u094b\u092b\u093e\u0907\u0932",
-    "Save & Next": "\u0938\u0947\u0935 \u0915\u0930\u0947\u0902 \u0914\u0930 \u0906\u0917\u0947 \u092c\u0922\u093c\u0947\u0902",
-    Save: "\u0938\u0947\u0935 \u0915\u0930\u0947\u0902",
-    Back: "\u0935\u093e\u092a\u0938",
-    "Log-In": "\u0932\u0949\u0917-\u0907\u0928",
-    "Sign-up": "\u0938\u093e\u0907\u0928-\u0905\u092a",
-    Logout: "\u0932\u0949\u0917\u0906\u0909\u091f",
-    Loading: "\u0932\u094b\u0921 \u0939\u094b \u0930\u0939\u093e \u0939\u0948",
-    "SRS Livelihood App": "\u090f\u0938\u0906\u0930\u090f\u090f\u0938 \u0906\u091c\u0940\u0935\u093f\u0915\u093e \u090f\u092a",
-    "Digital Livelihood Monitoring System": "\u0921\u093f\u091c\u093f\u091f\u0932 \u0906\u091c\u0940\u0935\u093f\u0915\u093e \u092e\u0949\u0928\u093f\u091f\u0930\u093f\u0902\u0917 \u0938\u093f\u0938\u094d\u091f\u092e"
+    "Language Selection": "भाषा चयन",
+    "Choose your preferred language": "अपनी पसंदीदा भाषा चुनें",
+    Continue: "जारी रखें",
+    "Select Interface Language": "इंटरफ़ेस भाषा चुनें",
+    "Available Across India": "पूरे भारत में उपलब्ध",
+    "Pick any language and the app will translate labels dynamically using Google Translate when configured.": "कोई भी भाषा चुनें, और कॉन्फ़िगर होने पर ऐप Google Translate से लेबल का अनुवाद करेगा।",
+    "Government of Tripura": "त्रिपुरा सरकार",
+    "Tripura Rural Livelihood Mission": "त्रिपुरा ग्रामीण आजीविका मिशन"
   },
   as: {
-    "Language Selection": "\u09ad\u09be\u09b7\u09be \u09a8\u09bf\u09f0\u09cd\u09ac\u09be\u099a\u09a8",
-    "Choose your preferred language": "\u0986\u09aa\u09cb\u09a8\u09be\u09f0 \u09aa\u099b\u09a8\u09cd\u09a6\u09f0 \u09ad\u09be\u09b7\u09be \u09ac\u09be\u099b\u09bf \u09b2\u0993\u0995",
-    Continue: "\u0986\u0997\u09ac\u09be\u09a2\u09bc\u0995",
-    English: "\u0987\u0982\u09f0\u09be\u099c\u09c0",
-    Bengali: "\u09ac\u09be\u0982\u09b2\u09be",
-    Hindi: "\u09b9\u09bf\u09a8\u09cd\u09a6\u09c0",
-    Assamese: "\u0985\u09b8\u09ae\u09c0\u09df\u09be",
-    Home: "\u0997\u09c3\u09b9",
-    SHG: "\u098f\u099b\u098f\u0987\u099a\u099c\u09bf",
-    Loan: "\u098b\u09a3",
-    Reports: "\u09aa\u09cd\u09f0\u09a4\u09bf\u09ac\u09c7\u09a6\u09a8",
-    Profile: "\u09aa\u09cd\u09f0\u09cb\u09ab\u09be\u0987\u09b2",
-    "Save & Next": "\u09b8\u0982\u09f0\u0995\u09cd\u09b7\u09a3 \u0995\u09f0\u0995 \u0986\u09f0\u09c1 \u0986\u0997\u09ac\u09be\u09a2\u09bc\u0995",
-    Save: "\u09b8\u0982\u09f0\u0995\u09cd\u09b7\u09a3",
-    Back: "\u09aa\u09bf\u099b\u09b2\u09c8 \u09af\u09be\u0993\u0995",
-    "Log-In": "\u09b2\u0997-\u0987\u09a8",
-    "Sign-up": "\u09a8\u09bf\u09ac\u09a8\u09cd\u09a7\u09a8",
-    Logout: "\u09b2\u0997-\u0986\u0989\u099f",
-    Loading: "\u09b2\u09cb\u09a1 \u09b9\u09c8 \u0986\u099b\u09c7",
-    "SRS Livelihood App": "\u098f\u099b\u0986\u09f0\u098f\u099b \u099c\u09c0\u09f1\u09bf\u0995\u09be \u098f\u09aa",
-    "Digital Livelihood Monitoring System": "\u09a1\u09bf\u099c\u09bf\u099f\u09c7\u09b2 \u099c\u09c0\u09f1\u09bf\u0995\u09be \u09aa\u09f0\u09cd\u09af\u09ac\u09c7\u0995\u09cd\u09b7\u09a3 \u09ac\u09cd\u09af\u09f1\u09b8\u09cd\u09a5\u09be"
+    "Language Selection": "ভাষা নিৰ্বাচন",
+    "Choose your preferred language": "আপোনাৰ পছন্দৰ ভাষা বাছক",
+    Continue: "আগবাঢ়ক",
+    "Select Interface Language": "ইণ্টাৰফেচ ভাষা বাছক",
+    "Available Across India": "সমগ্ৰ ভাৰতত উপলব্ধ",
+    "Pick any language and the app will translate labels dynamically using Google Translate when configured.": "যিকোনো ভাষা বাছক, আৰু কনফিগাৰ কৰা থাকিলে এপে Google Translate ব্যৱহাৰ কৰি লেবেল অনুবাদ কৰিব।",
+    "Government of Tripura": "ত্ৰিপুৰা চৰকাৰ",
+    "Tripura Rural Livelihood Mission": "ত্ৰিপুৰা গ্ৰাম্য জীৱিকাৰ মিছন"
   }
 };
 
@@ -97,3 +77,5 @@ export function getFallbackTranslation(language, key) {
 export function translateText(language, key) {
   return getFallbackTranslation(language, key);
 }
+
+export { LANGUAGE_CODE_MAP };

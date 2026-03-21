@@ -28,6 +28,7 @@ export default function TrlmHeader({
 
         {showLogout ? (
           <Pressable style={styles.trlmLogoutButton} onPress={onLogout}>
+            <Text style={styles.trlmLogoutIcon}>↗</Text>
             <Text style={styles.trlmLogoutButtonText}>{t("Logout")}</Text>
           </Pressable>
         ) : null}
