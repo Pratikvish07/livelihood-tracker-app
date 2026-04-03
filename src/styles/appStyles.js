@@ -1,4 +1,37 @@
-import { StyleSheet } from "react-native";
+import { Platform, StyleSheet } from "react-native";
+
+const isWeb = Platform.OS === "web";
+
+const webShadow = (color = "#000", offset = { width: 0, height: 0 }, opacity = 0.2, radius = 4) => {
+  if (!isWeb) return {};
+
+  const normalizeColor = (value) => {
+    if (!value) return `rgba(0,0,0,${opacity})`;
+    const trimmed = value.trim();
+    if (trimmed.startsWith("#")) {
+      let hex = trimmed.slice(1);
+      if (hex.length === 3) {
+        hex = hex.split("").map((c) => c + c).join("");
+      }
+      const intValue = parseInt(hex, 16);
+      const r = (intValue >> 16) & 255;
+      const g = (intValue >> 8) & 255;
+      const b = intValue & 255;
+      return `rgba(${r},${g},${b},${opacity})`;
+    }
+    if (trimmed.startsWith("rgb(")) {
+      return trimmed.replace("rgb(", "rgba(").replace(")", `,${opacity})`);
+    }
+    if (trimmed.startsWith("rgba(")) {
+      return trimmed;
+    }
+    return trimmed;
+  };
+
+  return {
+    boxShadow: `${offset.width}px ${offset.height}px ${radius}px ${normalizeColor(color)}`,
+  };
+};
 
 const styles = StyleSheet.create({
   safe: {
@@ -461,11 +494,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#fffdf7",
-    shadowColor: "#5c5133",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.16,
-    shadowRadius: 16,
-    elevation: 10,
+    ...Platform.select({
+      web: webShadow("#5c5133", { width: 0, height: 8 }, 0.16, 16),
+      default: {
+        shadowColor: "#5c5133",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.16,
+        shadowRadius: 16,
+        elevation: 10,
+      },
+    }),
     borderWidth: 4,
     borderColor: "rgba(31,75,63,0.25)",
   },

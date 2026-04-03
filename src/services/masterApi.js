@@ -13,7 +13,8 @@ export const API_ENDPOINTS = {
   auth: {
     crpSignup:
       process.env.EXPO_PUBLIC_CRP_SIGNUP_PATH || "/api/auth/crp/signup",
-    login: process.env.EXPO_PUBLIC_LOGIN_PATH || "/api/auth/crp/login"
+    login: process.env.EXPO_PUBLIC_LOGIN_PATH || "/api/auth/crp/login",
+    allCrps: process.env.EXPO_PUBLIC_ALL_CRPS_PATH || "/api/auth/crp/all"
   }
 };
 
@@ -239,3 +240,27 @@ export async function loginUser(payload) {
     body: JSON.stringify(payload)
   });
 }
+export async function fetchAllCrps() {
+  const payload = await executeRequest(API_ENDPOINTS.auth.allCrps, "CRP list");
+
+  return ensureArray(payload)
+    .map((item) => ({
+      id:
+        item?.crpRegistrationId ||
+        item?.CrpRegistrationId ||
+        item?.id ||
+        item?.Id,
+      crpId: String(item?.crpId || item?.CRPId || item?.crpID || "").trim(),
+      fullName: String(item?.fullName || item?.name || item?.userName || "").trim(),
+      blockId: item?.blockId || item?.BlockId || "",
+      villageId: item?.villageId || item?.VillageId || "",
+      approvalStatus: item?.approvalStatus,
+      createdDate: item?.createdDate || "",
+      name: `${String(item?.crpId || item?.CRPId || "").trim()} - ${String(
+        item?.fullName || item?.name || item?.userName || ""
+      ).trim()}`
+    }))
+    .filter((item) => item.id && item.crpId && item.fullName);
+}
+
+

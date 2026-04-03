@@ -30,7 +30,16 @@ const CORE_LABELS = [
   "Logout",
   "Loading",
   "SRS Livelihood App",
-  "Digital Livelihood Monitoring System"
+  "Digital Livelihood Monitoring System",
+  "Selected",
+  "Available",
+  "Get Your Location",
+  "Getting your location...",
+  "Tap below to get your current GPS location",
+  "Location Captured!",
+  "Get GPS Location",
+  "Use Default Location",
+  "Confirm & Continue"
 ].concat(LANGUAGES);
 
 export function I18nProvider({ language, children }) {

@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, Pressable, ActivityIndicator, StyleSheet, Modal, Alert, Platform } from 'react-native';
 import * as Location from 'expo-location';
+import { useI18n } from '../i18n/I18nProvider';
 
 export default function LeafletLocationPicker({ 
   visible, 
@@ -9,6 +10,7 @@ export default function LeafletLocationPicker({
   initialLatitude,
   initialLongitude 
 }) {
+  const { t } = useI18n();
   const [isLoading, setIsLoading] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [locationStatus, setLocationStatus] = useState('idle');
@@ -129,7 +131,7 @@ export default function LeafletLocationPicker({
     <Modal visible={visible} animationType="slide" transparent={false}>
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>Get Your Location</Text>
+          <Text style={styles.title}>{t("Get Your Location")}</Text>
           <Pressable onPress={onClose} style={styles.closeButton}>
             <Text style={styles.closeText}>X</Text>
           </Pressable>
@@ -139,7 +141,7 @@ export default function LeafletLocationPicker({
           {isLoading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#1e3a8a" />
-              <Text style={styles.loadingText}>Getting your location...</Text>
+              <Text style={styles.loadingText}>{t("Getting your location...")}</Text>
             </View>
           ) : (
             <>
@@ -148,12 +150,12 @@ export default function LeafletLocationPicker({
               </View>
               
               <Text style={styles.subtitle}>
-                Tap below to get your current GPS location
+                {t("Tap below to get your current GPS location")}
               </Text>
 
               {locationStatus === 'captured' && selectedLocation && (
                 <View style={styles.successBox}>
-                  <Text style={styles.successTitle}>Location Captured!</Text>
+                  <Text style={styles.successTitle}>{t("Location Captured!")}</Text>
                   <Text style={styles.successCoords}>
                     {selectedLocation.latitude.toFixed(4)}, {selectedLocation.longitude.toFixed(4)}
                   </Text>
@@ -162,11 +164,11 @@ export default function LeafletLocationPicker({
 
               <Pressable style={styles.gpsButton} onPress={handleGPSLocation}>
                 <Text style={styles.gpsButtonIcon}>📡</Text>
-                <Text style={styles.gpsButtonText}>Get GPS Location</Text>
+                <Text style={styles.gpsButtonText}>{t("Get GPS Location")}</Text>
               </Pressable>
 
               <Pressable style={styles.defaultButton} onPress={handleUseDefaultLocation}>
-                <Text style={styles.defaultButtonText}>Use Default Location</Text>
+                <Text style={styles.defaultButtonText}>{t("Use Default Location")}</Text>
               </Pressable>
             </>
           )}
@@ -174,7 +176,7 @@ export default function LeafletLocationPicker({
         
         <View style={styles.footer}>
           <Pressable style={styles.confirmButton} onPress={handleManualConfirm}>
-            <Text style={styles.confirmButtonText}>Confirm & Continue</Text>
+            <Text style={styles.confirmButtonText}>{t("Confirm & Continue")}</Text>
           </Pressable>
         </View>
       </View>

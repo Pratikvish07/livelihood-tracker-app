@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, Text as RNText, TextInput as RNTextInput, View } from "react-native";
+import { Alert, Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Text as RNText, TextInput as RNTextInput, View } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 import { useTranslatedValue } from "../../i18n/I18nProvider";
 import { getCurrentLocation, calculateDistance } from "../../utils/geofence";
+import { fetchAllCrps, fetchGpsByBlock, fetchVillagesByGp } from "../../services/masterApi";
 
 function stringifyChildren(children) {
   if (typeof children === "string" || typeof children === "number") {
@@ -35,6 +37,12 @@ function DropdownField({
   onToggle,
   onSelect
 }) {
+  const normalizedOptions = options.map((item) =>
+    typeof item === "string"
+      ? { id: item, name: item, rawValue: item }
+      : { id: item.id, name: item.name, rawValue: item }
+  );
+
   return (
     <View style={smStyles.fieldRow}>
       <Text style={smStyles.fieldLabel}>{label}</Text>
@@ -44,19 +52,19 @@ function DropdownField({
       </Pressable>
       {open ? (
         <View style={smStyles.dropdownMenu}>
-          {options.map((item) => (
+          {normalizedOptions.map((item) => (
             <Pressable
-              key={item}
-              style={[smStyles.dropdownItem, value === item && smStyles.dropdownItemActive]}
-              onPress={() => onSelect(item)}
+              key={`${item.id}-${item.name}`}
+              style={[smStyles.dropdownItem, value === item.name && smStyles.dropdownItemActive]}
+              onPress={() => onSelect(item.rawValue)}
             >
               <Text
                 style={[
                   smStyles.dropdownItemText,
-                  value === item && smStyles.dropdownItemTextActive
+                  value === item.name && smStyles.dropdownItemTextActive
                 ]}
               >
-                {item}
+                {item.name}
               </Text>
             </Pressable>
           ))}
@@ -96,6 +104,8 @@ export default function DashboardHomeTab({
   workingReport,
   setWorkingReport,
   onSubmitWorkingReport,
+  assignedShgMembers = [],
+  onLockAssignedShgLocation,
   onOpenWorkingReport,
   onOpenShgMember,
   onOpenLhCboActivity,
@@ -106,17 +116,22 @@ export default function DashboardHomeTab({
   homeView,
   onBackToDashboard
 }) {
+  const reportGeofenceRadius = 150;
   const [showCrpTypeMenu, setShowCrpTypeMenu] = useState(false);
   const [selectedCrpType, setSelectedCrpType] = useState(user.idType || "");
   const crpTypeOptions = [];
-  const shgNames = [];
-  const shgMembers = [];
+  const shgNames = Array.from(
+    new Set(assignedShgMembers.map((item) => item.shgName).filter(Boolean))
+  );
   const activityTypes = [];
   const subCategories = [];
   const livelihoodCboTypeOptions = [];
   const livelihoodCboNameOptions = [];
   const livelihoodCboActivityOptions = [];
   const [shgName, setShgName] = useState(firstOption(shgNames));
+  const shgMembers = assignedShgMembers
+    .filter((item) => !shgName || item.shgName === shgName)
+    .map((item) => item.memberName);
   const [memberName, setMemberName] = useState(firstOption(shgMembers));
   const [activityType, setActivityType] = useState(firstOption(activityTypes));
   const [subCategory, setSubCategory] = useState(firstOption(subCategories));
@@ -141,6 +156,9 @@ export default function DashboardHomeTab({
   const [uploadedImageName, setUploadedImageName] = useState("");
   const [uploadedImageDate, setUploadedImageDate] = useState("");
   const [uploadedImageUri, setUploadedImageUri] = useState("");
+  const [uploadedVideoName, setUploadedVideoName] = useState("");
+  const [uploadedVideoDate, setUploadedVideoDate] = useState("");
+  const [uploadedVideoUri, setUploadedVideoUri] = useState("");
   const [supportStage, setSupportStage] = useState("");
   const [activityProfile, setActivityProfile] = useState({
     activityName: "",
@@ -236,6 +254,30 @@ export default function DashboardHomeTab({
   // Graph page state
   const [graphType, setGraphType] = useState(null);
   const [graphImageFailed, setGraphImageFailed] = useState(false);
+  const [gpOptions, setGpOptions] = useState([]);
+  const [villageOptions, setVillageOptions] = useState([]);
+  const [selectedGpId, setSelectedGpId] = useState(user.gpId || "");
+  const [selectedVillageId, setSelectedVillageId] = useState(user.villageId || "");
+  const [openGpSelector, setOpenGpSelector] = useState(false);
+  const [openVillageSelector, setOpenVillageSelector] = useState(false);
+  const [crpOptions, setCrpOptions] = useState([]);
+  const [selectedCrpRegistrationId, setSelectedCrpRegistrationId] = useState("");
+  const [openCrpSelector, setOpenCrpSelector] = useState(false);
+  const [showDashboardAlerts, setShowDashboardAlerts] = useState(false);
+  const [hasAutoShownDashboardAlerts, setHasAutoShownDashboardAlerts] = useState(false);
+  const dashboardNotificationItems = alerts.length
+    ? alerts.map((item) => item.message).filter(Boolean)
+    : [
+        "Type of CRP is still pending",
+        "No of SHG Registeration is still pending",
+      ];
+  const dashboardAlertCount = dashboardNotificationItems.length;
+  const firstDashboardNotification =
+    dashboardNotificationItems[0] || "No pending alerts";
+  const selectedAssignedMember =
+    assignedShgMembers.find((item) => item.memberName === memberName) ||
+    assignedShgMembers[0] ||
+    null;
 
   // Sample graph data
   const graphData = {
@@ -338,6 +380,15 @@ export default function DashboardHomeTab({
   }, [selectedPieMeta]);
 
   const isWithin50Meters = distanceToMember !== null && distanceToMember <= 50;
+  const selectedGp =
+    gpOptions.find((item) => String(item.id) === String(selectedGpId)) || null;
+  const selectedVillage =
+    villageOptions.find((item) => String(item.id) === String(selectedVillageId)) || null;
+  const selectedCrpRecord =
+    crpOptions.find((item) => String(item.id) === String(selectedCrpRegistrationId)) || null;
+  const headerCrpId = selectedCrpRecord?.crpId || user.identity || "CRP-XXX";
+  const headerCrpName = selectedCrpRecord?.fullName || user.name || "CRP User";
+  const effectiveBlockId = selectedCrpRecord?.blockId || user.blockId || "";
   const normalizedSubCategory =
     subCategory === "Non-Farm" ? "NonFarm" : subCategory;
   const statusBySubCategory = {
@@ -382,6 +433,29 @@ export default function DashboardHomeTab({
         return null;
       }
       setCurrentCrpLocation(current);
+      if (homeView === "workingReport" && selectedAssignedMember) {
+        const hasLockedGeo =
+          Number.isFinite(Number(selectedAssignedMember.latitude)) &&
+          Number.isFinite(Number(selectedAssignedMember.longitude));
+
+        if (!hasLockedGeo) {
+          const lockedLocation = {
+            latitude: current.latitude,
+            longitude: current.longitude
+          };
+
+          setActivityCoordinates(lockedLocation);
+          setDistanceToMember(0);
+          onLockAssignedShgLocation?.(selectedAssignedMember.id, lockedLocation);
+          if (!silent) {
+            Alert.alert(
+              "SHG Geolocation Locked",
+              "Current device location has been locked for this assigned SHG. Next checks will compare against this point."
+            );
+          }
+          return 0;
+        }
+      }
       if (!activityCoordinates) {
         const autoGeneratedLocation = {
           latitude: current.latitude,
@@ -477,6 +551,128 @@ export default function DashboardHomeTab({
   }, [memberName, homeView]);
 
   useEffect(() => {
+    if (!shgName && shgNames.length > 0) {
+      setShgName(shgNames[0]);
+    }
+  }, [shgName, shgNames]);
+
+  useEffect(() => {
+    if (!memberName && shgMembers.length > 0) {
+      setMemberName(shgMembers[0]);
+    }
+  }, [memberName, shgMembers]);
+
+  useEffect(() => {
+    if (homeView !== "workingReport" || !selectedAssignedMember) {
+      return;
+    }
+
+    const hasLockedGeo =
+      Number.isFinite(Number(selectedAssignedMember.latitude)) &&
+      Number.isFinite(Number(selectedAssignedMember.longitude));
+
+    if (!hasLockedGeo) {
+      setActivityCoordinates(null);
+      return;
+    }
+
+    setActivityCoordinates({
+      latitude: selectedAssignedMember.latitude,
+      longitude: selectedAssignedMember.longitude
+    });
+  }, [homeView, selectedAssignedMember]);
+
+  useEffect(() => {
+    setSelectedGpId(user.gpId || "");
+    setSelectedVillageId(user.villageId || "");
+  }, [user.gpId, user.villageId]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadCrpOptions() {
+      try {
+        const payload = await fetchAllCrps();
+        if (!active) {
+          return;
+        }
+        const approvedCrps = payload.filter((item) => Number(item.approvalStatus) === 1);
+        setCrpOptions(approvedCrps);
+        if (!selectedCrpRegistrationId && approvedCrps.length > 0) {
+          const matchedCrp = approvedCrps.find((item) => item.crpId === user.identity);
+          setSelectedCrpRegistrationId(String((matchedCrp || approvedCrps[0]).id));
+        }
+      } catch (error) {
+        if (active) {
+          setCrpOptions([]);
+        }
+      }
+    }
+
+    loadCrpOptions();
+
+    return () => {
+      active = false;
+    };
+  }, [selectedCrpRegistrationId, user.identity]);
+
+  useEffect(() => {
+    if (homeView !== "newEnrolment" || !effectiveBlockId) {
+      setGpOptions([]);
+      return;
+    }
+
+    let active = true;
+
+    async function loadGpOptions() {
+      try {
+        const payload = await fetchGpsByBlock(effectiveBlockId);
+        if (active) {
+          setGpOptions(payload);
+        }
+      } catch (error) {
+        if (active) {
+          setGpOptions([]);
+        }
+      }
+    }
+
+    loadGpOptions();
+
+    return () => {
+      active = false;
+    };
+  }, [effectiveBlockId, homeView]);
+
+  useEffect(() => {
+    if (homeView !== "newEnrolment" || !selectedGpId) {
+      setVillageOptions([]);
+      return;
+    }
+
+    let active = true;
+
+    async function loadVillageOptions() {
+      try {
+        const payload = await fetchVillagesByGp(selectedGpId);
+        if (active) {
+          setVillageOptions(payload);
+        }
+      } catch (error) {
+        if (active) {
+          setVillageOptions([]);
+        }
+      }
+    }
+
+    loadVillageOptions();
+
+    return () => {
+      active = false;
+    };
+  }, [homeView, selectedGpId]);
+
+  useEffect(() => {
     if (homeView !== "shgMember" && homeView !== "lhCboActivity") {
       return undefined;
     }
@@ -489,52 +685,138 @@ export default function DashboardHomeTab({
     return () => clearInterval(timer);
   }, [homeView, memberName, activityCoordinates]);
 
-  const handleUploadImage = () => {
-    if (Platform.OS !== "web") {
-      Alert.alert("Upload Not Available", "Image upload picker is currently enabled for web.");
+  useEffect(() => {
+    if (homeView !== "dashboard" || hasAutoShownDashboardAlerts || dashboardAlertCount === 0) {
       return;
     }
 
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "image/*";
-    input.onchange = (event) => {
-      const file = event?.target?.files?.[0];
-      if (!file) return;
-      const now = new Date();
-      const imageDate = now.toISOString().slice(0, 10);
-      const imageUri = URL.createObjectURL(file);
+    setShowDashboardAlerts(true);
+    setHasAutoShownDashboardAlerts(true);
+  }, [dashboardAlertCount, hasAutoShownDashboardAlerts, homeView]);
 
-      setUploadedImageName(file.name);
-      setUploadedImageDate(imageDate);
-      setUploadedImageUri(imageUri);
-      Alert.alert("Image Uploaded", `Selected: ${file.name}`);
-    };
-    input.click();
+  useEffect(() => {
+    if (!showDashboardAlerts) {
+      return undefined;
+    }
+
+    const timer = setTimeout(() => {
+      setShowDashboardAlerts(false);
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [showDashboardAlerts]);
+
+  const handleUploadImage = () => {
+    ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: false,
+      quality: 0.8
+    })
+      .then((result) => {
+        if (result.canceled || !result.assets?.length) {
+          return;
+        }
+
+        const asset = result.assets[0];
+        const now = new Date();
+        const imageDate = now.toISOString().slice(0, 10);
+
+        setUploadedImageName(asset.fileName || "selected-image");
+        setUploadedImageDate(imageDate);
+        setUploadedImageUri(asset.uri || "");
+        Alert.alert("Image Uploaded", `Selected: ${asset.fileName || "image"}`);
+      })
+      .catch((error) => {
+        Alert.alert("Upload Failed", error.message || "Unable to select image.");
+      });
+  };
+
+  const handleUploadVideo = () => {
+    ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+      allowsEditing: false,
+      quality: 0.8
+    })
+      .then((result) => {
+        if (result.canceled || !result.assets?.length) {
+          return;
+        }
+
+        const asset = result.assets[0];
+        const now = new Date();
+        const videoDate = now.toISOString().slice(0, 10);
+
+        setUploadedVideoName(asset.fileName || "selected-video");
+        setUploadedVideoDate(videoDate);
+        setUploadedVideoUri(asset.uri || "");
+        Alert.alert("Video Uploaded", `Selected: ${asset.fileName || "video"}`);
+      })
+      .catch((error) => {
+        Alert.alert("Upload Failed", error.message || "Unable to select video.");
+      });
+  };
+
+  const handleSubmitCrpTrackingReport = async () => {
+    if (!selectedAssignedMember) {
+      Alert.alert("Working Report", "No SHG member is assigned for reporting.");
+      return;
+    }
+    if (!uploadedImageUri) {
+      Alert.alert("Working Report", "Upload image is mandatory for daily reporting.");
+      return;
+    }
+    if (!uploadedVideoUri) {
+      Alert.alert("Working Report", "Upload video is mandatory for daily reporting.");
+      return;
+    }
+
+    const meters = await checkRadiusDistance(false);
+    if (meters === null) {
+      Alert.alert("Working Report", "Enable location and match SHG geolocation before submission.");
+      return;
+    }
+    if (meters > reportGeofenceRadius) {
+      Alert.alert(
+        "Outside 150m Radius",
+        `Current location is ${meters}m away. Move within 150m of the assigned SHG location.`
+      );
+      return;
+    }
+
+    onSubmitWorkingReport({
+      assignmentId: selectedAssignedMember.id,
+      shgName: selectedAssignedMember.shgName,
+      memberName: selectedAssignedMember.memberName,
+      reportDate: new Date().toISOString().slice(0, 10),
+      imageName: uploadedImageName,
+      videoName: uploadedVideoName,
+      distanceMeters: meters
+    });
   };
 
   const handleUploadLhCboImage = () => {
-    if (Platform.OS !== "web") {
-      Alert.alert("Upload Not Available", "Image upload picker is currently enabled for web.");
-      return;
-    }
+    ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: false,
+      quality: 0.8
+    })
+      .then((result) => {
+        if (result.canceled || !result.assets?.length) {
+          return;
+        }
 
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "image/*";
-    input.onchange = (event) => {
-      const file = event?.target?.files?.[0];
-      if (!file) return;
-      const imageUri = URL.createObjectURL(file);
+        const asset = result.assets[0];
 
-      setLhCboImages((prev) => {
-        const updated = [...prev, imageUri];
-        setLhCboImageIndex(updated.length - 1);
-        return updated;
+        setLhCboImages((prev) => {
+          const updated = [...prev, asset.uri || ""];
+          setLhCboImageIndex(updated.length - 1);
+          return updated;
+        });
+        Alert.alert("Image Uploaded", `Selected: ${asset.fileName || "image"}`);
+      })
+      .catch((error) => {
+        Alert.alert("Upload Failed", error.message || "Unable to select image.");
       });
-      Alert.alert("Image Uploaded", `Selected: ${file.name}`);
-    };
-    input.click();
   };
 
   if (homeView === "workingReport") {
@@ -546,8 +828,8 @@ export default function DashboardHomeTab({
               <Text style={pageStyles.imageText}>CRP{"\n"}Image</Text>
             </View>
             <View style={pageStyles.infoCard}>
-              <Text style={pageStyles.infoLine}>CRP ID: {user.identity || "CRP-XXX"}</Text>
-              <Text style={pageStyles.infoLine}>Name: {user.name || "CRP User"}</Text>
+              <Text style={pageStyles.infoLine}>CRP ID: {headerCrpId}</Text>
+              <Text style={pageStyles.infoLine}>Name: {headerCrpName}</Text>
             </View>
           </View>
 
@@ -566,6 +848,13 @@ export default function DashboardHomeTab({
           </View>
 
           <View style={wrStyles.metricBox}>
+            <Text style={wrStyles.metricLabel}>No. of Days Attendance Counted</Text>
+            <View style={wrStyles.metricValueBox}>
+              <Text style={wrStyles.metricValueText}>{dashboardMetrics.attendanceDays}</Text>
+            </View>
+          </View>
+
+          <View style={wrStyles.metricBox}>
             <Text style={wrStyles.metricLabel}>Honorarium to be Claimed</Text>
             <View style={wrStyles.metricValueBox}>
               <Text style={wrStyles.metricValueText}>
@@ -576,28 +865,84 @@ export default function DashboardHomeTab({
 
           <View style={wrStyles.metricBox}>
             <Text style={wrStyles.metricLabel}>Last Honorarium Received</Text>
-            <TextInput
-              value={workingReport.amountReceived}
-              onChangeText={(text) =>
-                setWorkingReport((prev) => ({
-                  ...prev,
-                  amountReceived: text.replace(/\D/g, "")
-                }))
-              }
-              placeholder="Type amount"
-              placeholderTextColor="#64748b"
-              keyboardType="numeric"
-              style={wrStyles.metricInput}
-            />
+            <View style={wrStyles.metricValueBox}>
+              <Text style={wrStyles.metricValueText}>{workingReport.amountReceived}</Text>
+            </View>
           </View>
 
-          <View style={wrStyles.submitRow}>
-            <Pressable style={wrStyles.graphBtn}>
-              <Text style={wrStyles.graphBtnText}>Graph</Text>
-            </Pressable>
-            <Pressable style={wrStyles.submitBtn} onPress={onSubmitWorkingReport}>
-              <Text style={wrStyles.submitBtnText}>Submit</Text>
-            </Pressable>
+          <View style={wrStyles.reportWorkflowCard}>
+            <Text style={wrStyles.workflowTitle}>CRP Daily Tracking Workflow</Text>
+            <Text style={wrStyles.workflowHint}>
+              SHG assignment is locked with geolocation. Image and video upload are mandatory,
+              and attendance counts only when CRP location matches within 150 metres.
+            </Text>
+            <Text style={wrStyles.workflowHint}>
+              First tap on `Match 150m Geo` to lock the SHG location from the current device position.
+            </Text>
+
+            <View style={wrStyles.workflowRow}>
+              <Text style={wrStyles.workflowLabel}>Assigned SHG</Text>
+              <Text style={wrStyles.workflowValue}>
+                {selectedAssignedMember?.shgName || "No SHG assigned"}
+              </Text>
+            </View>
+            <View style={wrStyles.workflowRow}>
+              <Text style={wrStyles.workflowLabel}>Assigned Member</Text>
+              <Text style={wrStyles.workflowValue}>
+                {selectedAssignedMember?.memberName || "No member assigned"}
+              </Text>
+            </View>
+            <View style={wrStyles.workflowRow}>
+              <Text style={wrStyles.workflowLabel}>Locked SHG Geo</Text>
+              <Text style={wrStyles.workflowValue}>
+                {selectedAssignedMember &&
+                Number.isFinite(Number(selectedAssignedMember.latitude)) &&
+                Number.isFinite(Number(selectedAssignedMember.longitude))
+                  ? `${selectedAssignedMember.latitude.toFixed(6)}, ${selectedAssignedMember.longitude.toFixed(6)}`
+                  : "Not locked yet"}
+              </Text>
+            </View>
+            <View style={wrStyles.workflowRow}>
+              <Text style={wrStyles.workflowLabel}>Members Visited Today</Text>
+              <Text style={wrStyles.workflowValue}>{dashboardMetrics.totalMembersVisitedToday}</Text>
+            </View>
+            <View style={wrStyles.workflowRow}>
+              <Text style={wrStyles.workflowLabel}>Static Honorarium/Visit</Text>
+              <Text style={wrStyles.workflowValue}>150</Text>
+            </View>
+
+            <View style={wrStyles.workflowMediaRow}>
+              <Pressable style={wrStyles.mediaBtn} onPress={handleUploadImage}>
+                <Text style={wrStyles.mediaBtnText}>Upload Image*</Text>
+              </Pressable>
+              <Pressable style={wrStyles.mediaBtn} onPress={handleUploadVideo}>
+                <Text style={wrStyles.mediaBtnText}>Upload Video*</Text>
+              </Pressable>
+            </View>
+
+            <Text style={wrStyles.mediaStatusText}>
+              Image: {uploadedImageName ? `${uploadedImageName} (${uploadedImageDate})` : "Pending"}
+            </Text>
+            <Text style={wrStyles.mediaStatusText}>
+              Video: {uploadedVideoName ? `${uploadedVideoName} (${uploadedVideoDate})` : "Pending"}
+            </Text>
+
+            <View style={wrStyles.workflowActions}>
+              <Pressable style={wrStyles.locationBtn} onPress={() => checkRadiusDistance(false)}>
+                <Text style={wrStyles.locationBtnText}>
+                  {isDistanceLoading ? "Checking..." : "Match 150m Geo"}
+                </Text>
+              </Pressable>
+              <Pressable style={wrStyles.submitBtn} onPress={handleSubmitCrpTrackingReport}>
+                <Text style={wrStyles.submitBtnText}>Submit Daily Report</Text>
+              </Pressable>
+            </View>
+
+            <Text style={wrStyles.distanceText}>
+              {distanceToMember === null
+                ? "Distance not checked yet."
+                : `Current distance from SHG geolocation: ${distanceToMember}m`}
+            </Text>
           </View>
 
           <View style={wrStyles.alertRow}>
@@ -610,11 +955,15 @@ export default function DashboardHomeTab({
 
           <View style={wrStyles.activityCard}>
             <Text style={wrStyles.activityTitle}>Different Activities of the Concern CRP</Text>
-            {activities.slice(0, 3).map((item) => (
-              <Text key={item.id} style={wrStyles.activityLine}>
-                - {item.title} ({item.action})
-              </Text>
-            ))}
+            {activities.length ? (
+              activities.slice(0, 3).map((item) => (
+                <Text key={item.id} style={wrStyles.activityLine}>
+                  - {item.title} ({item.reportDate})
+                </Text>
+              ))
+            ) : (
+              <Text style={wrStyles.activityLine}>- No daily report submitted yet</Text>
+            )}
           </View>
 
           <Pressable style={wrStyles.backBtn} onPress={onBackToDashboard}>
@@ -634,19 +983,62 @@ export default function DashboardHomeTab({
               <Text style={pageStyles.imageText}>CRP{"\n"}Image</Text>
             </View>
             <View style={pageStyles.infoCard}>
-              <Text style={pageStyles.infoLine}>CRP ID: {user.identity || "CRP-XXX"}</Text>
-              <Text style={pageStyles.infoLine}>Name: {user.name || "CRP User"}</Text>
+              <Text style={pageStyles.infoLine}>CRP ID: {headerCrpId}</Text>
+              <Text style={pageStyles.infoLine}>Name: {headerCrpName}</Text>
             </View>
           </View>
 
-          <View style={neStyles.fieldBox}>
-            <Text style={neStyles.fieldLabel}>GP/VC Name:</Text>
-            <Text style={neStyles.fieldValue}>{user.gpVcName || "-"}</Text>
-          </View>
-          <View style={neStyles.fieldBox}>
-            <Text style={neStyles.fieldLabel}>Village Name:</Text>
-            <Text style={neStyles.fieldValue}>{user.villageName || "-"}</Text>
-          </View>
+          
+          <DropdownField
+            label="CRP ID / Name:"
+            value={selectedCrpRecord?.name || "Select CRP"}
+            options={crpOptions}
+            open={openCrpSelector}
+            onToggle={() => {
+              setOpenCrpSelector((prev) => !prev);
+              setOpenGpSelector(false);
+              setOpenVillageSelector(false);
+            }}
+            onSelect={(item) => {
+              setSelectedCrpRegistrationId(String(item.id));
+              setSelectedGpId("");
+              setSelectedVillageId("");
+              setOpenCrpSelector(false);
+            }}
+          />
+
+          <DropdownField
+            label="GP/VC Name:"
+            value={selectedGp?.name || user.gpVcName || "Select GP/VC"}
+            options={gpOptions}
+            open={openGpSelector}
+            onToggle={() => {
+              setOpenGpSelector((prev) => !prev);
+              setOpenVillageSelector(false);
+            }}
+            onSelect={(item) => {
+              setSelectedGpId(item.id);
+              setSelectedVillageId("");
+              setOpenGpSelector(false);
+            }}
+          />
+          <DropdownField
+            label="Village Name:"
+            value={selectedVillage?.name || user.villageName || "Select Village"}
+            options={villageOptions}
+            open={openVillageSelector}
+            onToggle={() => {
+              if (!selectedGpId) {
+                return;
+              }
+              setOpenVillageSelector((prev) => !prev);
+              setOpenGpSelector(false);
+            }}
+            onSelect={(item) => {
+              setSelectedVillageId(item.id);
+              setOpenVillageSelector(false);
+            }}
+          />
 
           <View style={neStyles.selectStrip}>
             <Text style={neStyles.selectText}>Select from below</Text>
@@ -695,8 +1087,8 @@ export default function DashboardHomeTab({
               <Text style={pageStyles.imageText}>CRP{"\n"}Image</Text>
             </View>
             <View style={pageStyles.infoCard}>
-              <Text style={pageStyles.infoLine}>CRP ID: {user.identity || "CRP-XXX"}</Text>
-              <Text style={pageStyles.infoLine}>Name: {user.name || "CRP User"}</Text>
+              <Text style={pageStyles.infoLine}>CRP ID: {headerCrpId}</Text>
+              <Text style={pageStyles.infoLine}>Name: {headerCrpName}</Text>
             </View>
           </View>
 
@@ -915,8 +1307,8 @@ export default function DashboardHomeTab({
               <Text style={pageStyles.imageText}>CRP{"\n"}Image</Text>
             </View>
             <View style={pageStyles.infoCard}>
-              <Text style={pageStyles.infoLine}>CRP ID: {user.identity || "CRP-XXX"}</Text>
-              <Text style={pageStyles.infoLine}>Name: {user.name || "CRP User"}</Text>
+              <Text style={pageStyles.infoLine}>CRP ID: {headerCrpId}</Text>
+              <Text style={pageStyles.infoLine}>Name: {headerCrpName}</Text>
             </View>
           </View>
 
@@ -1816,8 +2208,8 @@ export default function DashboardHomeTab({
                 <Text style={pageStyles.imageText}>CRP{"\n"}Image</Text>
               </View>
               <View style={pageStyles.infoCard}>
-                <Text style={pageStyles.infoLine}>CRP ID: {user.identity || "CRP-XXX"}</Text>
-                <Text style={pageStyles.infoLine}>Name: {user.name || "CRP User"}</Text>
+                <Text style={pageStyles.infoLine}>CRP ID: {headerCrpId}</Text>
+                <Text style={pageStyles.infoLine}>Name: {headerCrpName}</Text>
               </View>
             </View>
 
@@ -2728,8 +3120,8 @@ export default function DashboardHomeTab({
             <Text style={pageStyles.imageText}>CRP{"\n"}Image</Text>
           </View>
           <View style={pageStyles.infoCard}>
-            <Text style={pageStyles.infoLine}>CRP ID: {user.identity || "CRP-XXX"}</Text>
-            <Text style={pageStyles.infoLine}>Name: {user.name || "CRP User"}</Text>
+            <Text style={pageStyles.infoLine}>CRP ID: {headerCrpId}</Text>
+            <Text style={pageStyles.infoLine}>Name: {headerCrpName}</Text>
           </View>
         </View>
 
@@ -2769,22 +3161,39 @@ export default function DashboardHomeTab({
           ) : null}
         </View>
 
+        <Modal
+          visible={showDashboardAlerts}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowDashboardAlerts(false)}
+        >
+          <View pointerEvents="box-none" style={pageStyles.alertPopupOverlay}>
+            <Pressable
+              style={pageStyles.alertPopupCard}
+              onPress={() => setShowDashboardAlerts(false)}
+            >
+              <View style={pageStyles.dashboardAlertHeader}>
+                <View style={pageStyles.dashboardAlertIconWrap}>
+                  <Text style={pageStyles.dashboardAlertIcon}>!</Text>
+                </View>
+                <View style={pageStyles.dashboardAlertCopy}>
+                  <Text style={pageStyles.dashboardAlertTitle}>Notifications</Text>
+                  <Text style={pageStyles.dashboardAlertHint}>{firstDashboardNotification}</Text>
+                </View>
+                <View style={pageStyles.dashboardAlertBadge}>
+                  <Text style={pageStyles.dashboardAlertBadgeText}>{dashboardAlertCount}</Text>
+                </View>
+              </View>
+            </Pressable>
+          </View>
+        </Modal>
+
         <View style={pageStyles.dashboardCard}>
           <Text style={pageStyles.dashboardTitle}>Dashboard</Text>
 
           <View style={pageStyles.metricCompactCard}>
             <View style={pageStyles.metricCompactLeft}>
-              <Text style={pageStyles.metricCompactLabel}>SHG Member Assigned</Text>
-              <Pressable style={pageStyles.graphPill} onPress={() => handleGraphPress("members")}>
-                <Text style={pageStyles.graphText}>Graph</Text>
-              </Pressable>
-            </View>
-            <Text style={pageStyles.metricCompactValue}>.....nos</Text>
-          </View>
-
-          <View style={pageStyles.metricCompactCard}>
-            <View style={pageStyles.metricCompactLeft}>
-              <Text style={pageStyles.metricCompactLabel}>Total Visit Placed in the Last 30 days</Text>
+              <Text style={pageStyles.metricCompactLabel}>Total Field Visit in last 30 days</Text>
               <Pressable style={pageStyles.graphPill} onPress={() => handleGraphPress("visits")}>
                 <Text style={pageStyles.graphText}>Graph</Text>
               </Pressable>
@@ -2794,31 +3203,79 @@ export default function DashboardHomeTab({
 
           <View style={pageStyles.metricCompactCard}>
             <View style={pageStyles.metricCompactLeft}>
-              <Text style={pageStyles.metricCompactLabel}>Honorarium Received</Text>
+              <Text style={pageStyles.metricCompactLabel}>Total SHG Members Visited</Text>
+              <Pressable style={pageStyles.graphPill} onPress={() => handleGraphPress("members")}>
+                <Text style={pageStyles.graphText}>Graph</Text>
+              </Pressable>
+            </View>
+            <Text style={pageStyles.metricCompactValue}>{dashboardMetrics.totalMembersVisited}</Text>
+          </View>
+
+          <View style={pageStyles.metricCompactCard}>
+            <View style={pageStyles.metricCompactLeft}>
+              <Text style={pageStyles.metricCompactLabel}>Honorarium to be Claimed</Text>
               <Pressable style={pageStyles.graphPill} onPress={() => handleGraphPress("honorarium")}>
                 <Text style={pageStyles.graphText}>Graph</Text>
               </Pressable>
             </View>
+            <Text style={pageStyles.metricCompactValue}>{dashboardMetrics.honorariumToBeClaimed}</Text>
+          </View>
+
+          <View style={pageStyles.metricCompactCard}>
+            <View style={pageStyles.metricCompactLeft}>
+              <Text style={pageStyles.metricCompactLabel}>Last Honorarium Received</Text>
+            </View>
             <Text style={pageStyles.metricCompactValue}>
-              {dashboardMetrics.honorariumReceived || "............."}
+              {dashboardMetrics.honorariumReceived || "0"}
             </Text>
+          </View>
+
+          <View style={pageStyles.submitActionRow}>
+            <Pressable style={pageStyles.graphActionBtn} onPress={() => handleGraphPress("visits")}>
+              <Text style={pageStyles.graphActionBtnText}>Graph</Text>
+            </Pressable>
+            <Pressable style={pageStyles.submitActionBtn} onPress={onOpenWorkingReport}>
+              <Text style={pageStyles.submitActionBtnText}>Submit</Text>
+            </Pressable>
+          </View>
+
+          <View style={pageStyles.dashboardInlineAlert}>
+            <View style={pageStyles.dashboardAlertDot} />
+            <Text style={pageStyles.dashboardInlineAlertText}>
+              Alerts of Pending & Upcoming Works-
+              {alerts.length > 0 ? ` ${alerts[0].message}` : " No pending alerts"}
+            </Text>
+          </View>
+
+          <View style={pageStyles.dashboardActivityPanel}>
+            <Text style={pageStyles.dashboardActivityTitle}>Different Activities of the Concern CRP</Text>
+            {activities.length ? (
+              activities.slice(0, 3).map((item) => (
+                <Text key={item.id} style={pageStyles.dashboardActivityLine}>
+                  - {item.title}
+                </Text>
+              ))
+            ) : (
+              <Text style={pageStyles.dashboardActivityEmpty}>Daily visit reports will appear here.</Text>
+            )}
           </View>
         </View>
 
         <View style={pageStyles.quickActionsCard}>
           <Text style={pageStyles.quickActionsTitle}>Quick Actions</Text>
           <View style={pageStyles.actionsRow}>
-            <Pressable style={pageStyles.actionBtnMuted} onPress={onOpenWorkingReport}>
-              <Text style={pageStyles.actionTextMuted}>Working{"\n"}Report</Text>
+            <Pressable style={pageStyles.actionBtnMuted} onPress={onOpenNewEnrolment}>
+              <Text style={pageStyles.actionTextMuted}>New{"\n"}Enrolment</Text>
             </Pressable>
-            <Pressable style={pageStyles.actionBtnPrimary} onPress={onOpenNewEnrolment}>
-              <Text style={pageStyles.actionTextPrimary}>New{"\n"}Enrolment</Text>
+            <Pressable style={pageStyles.actionBtnPrimary} onPress={onOpenShgMember}>
+              <Text style={pageStyles.actionTextPrimary}>SHG{"\n"}Member</Text>
             </Pressable>
             <Pressable style={pageStyles.actionBtnMuted} onPress={onOpenUpdateData}>
               <Text style={pageStyles.actionTextMuted}>Update Data</Text>
             </Pressable>
           </View>
         </View>
+
       </View>
     </View>
   );
@@ -3067,6 +3524,154 @@ const pageStyles = StyleSheet.create({
   },
   quickActionsTitle: { color: "#111827", fontSize: 18, fontWeight: "800" },
   actionsRow: { flexDirection: "row", gap: 8, marginTop: 8 },
+  submitActionRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 12
+  },
+  graphActionBtn: {
+    flex: 1,
+    backgroundColor: "#2f4cb5",
+    borderRadius: 12,
+    minHeight: 46,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  graphActionBtnText: {
+    color: "#ffffff",
+    fontSize: 15,
+    fontWeight: "800"
+  },
+  submitActionBtn: {
+    minWidth: 104,
+    backgroundColor: "#f59e0b",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    minHeight: 46,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  submitActionBtnText: {
+    color: "#ffffff",
+    fontSize: 15,
+    fontWeight: "800"
+  },
+  dashboardInlineAlert: {
+    marginTop: 12,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    borderRadius: 14,
+    backgroundColor: "#fffaf2",
+    padding: 12
+  },
+  dashboardAlertDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: "#fb923c",
+    marginTop: 2
+  },
+  dashboardInlineAlertText: {
+    flex: 1,
+    color: "#475569",
+    fontSize: 12,
+    lineHeight: 18
+  },
+  dashboardActivityPanel: {
+    marginTop: 12,
+    borderRadius: 16,
+    backgroundColor: "#204e8a",
+    minHeight: 124,
+    padding: 14
+  },
+  dashboardActivityTitle: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "800",
+    textDecorationLine: "underline"
+  },
+  dashboardActivityLine: {
+    marginTop: 10,
+    color: "#dbeafe",
+    fontSize: 13,
+    lineHeight: 18
+  },
+  dashboardActivityEmpty: {
+    marginTop: 12,
+    color: "#dbeafe",
+    fontSize: 13,
+    lineHeight: 18
+  },
+  alertPopupOverlay: {
+    flex: 1,
+    justifyContent: "flex-start",
+    paddingTop: 92,
+    paddingHorizontal: 12
+  },
+  alertPopupCard: {
+    borderWidth: 1,
+    borderColor: "#111827",
+    backgroundColor: "#f8edd7",
+    borderRadius: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 3
+  },
+  dashboardAlertHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10
+  },
+  dashboardAlertIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#f59e0b",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#d97706"
+  },
+  dashboardAlertIcon: {
+    color: "#ffffff",
+    fontSize: 18,
+    fontWeight: "900"
+  },
+  dashboardAlertCopy: {
+    flex: 1,
+    gap: 1
+  },
+  dashboardAlertTitle: {
+    color: "#9a3412",
+    fontSize: 18,
+    fontWeight: "900"
+  },
+  dashboardAlertHint: {
+    color: "#7c2d12",
+    fontSize: 12,
+    fontWeight: "700"
+  },
+  dashboardAlertBadge: {
+    minWidth: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#dc2626",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 6
+  },
+  dashboardAlertBadgeText: {
+    color: "#ffffff",
+    fontSize: 12,
+    fontWeight: "900"
+  },
   actionBtnMuted: {
     flex: 1,
     backgroundColor: "#e5e7eb",
@@ -3138,6 +3743,82 @@ const wrStyles = StyleSheet.create({
     paddingVertical: 10
   },
   submitRow: { flexDirection: "row", gap: 8 },
+  reportWorkflowCard: {
+    borderWidth: 1,
+    borderColor: "#d6e0eb",
+    backgroundColor: "#f8fbff",
+    borderRadius: 16,
+    padding: 12,
+    gap: 8
+  },
+  workflowTitle: {
+    color: "#102a43",
+    fontSize: 15,
+    fontWeight: "800"
+  },
+  workflowHint: {
+    color: "#475569",
+    fontSize: 12,
+    lineHeight: 18
+  },
+  workflowRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8
+  },
+  workflowLabel: {
+    width: 118,
+    color: "#1f2937",
+    fontSize: 12,
+    fontWeight: "700"
+  },
+  workflowValue: {
+    flex: 1,
+    color: "#0f172a",
+    fontSize: 12,
+    fontWeight: "700"
+  },
+  workflowMediaRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 4
+  },
+  mediaBtn: {
+    flex: 1,
+    backgroundColor: "#dbeafe",
+    borderWidth: 1,
+    borderColor: "#93c5fd",
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10
+  },
+  mediaBtnText: {
+    color: "#1d4ed8",
+    fontSize: 12,
+    fontWeight: "800"
+  },
+  mediaStatusText: {
+    color: "#334155",
+    fontSize: 12
+  },
+  workflowActions: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 4
+  },
+  locationBtn: {
+    flex: 1,
+    backgroundColor: "#1e40af",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    borderRadius: 12
+  },
+  locationBtnText: {
+    color: "#dbeafe",
+    fontWeight: "700"
+  },
   graphBtn: {
     flex: 1,
     backgroundColor: "#1e40af",
@@ -3155,6 +3836,11 @@ const wrStyles = StyleSheet.create({
     borderRadius: 12
   },
   submitBtnText: { color: "#ffffff", fontWeight: "800" },
+  distanceText: {
+    color: "#0f172a",
+    fontSize: 12,
+    fontWeight: "700"
+  },
   alertRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -4904,3 +5590,8 @@ const lhStyles = StyleSheet.create({
     fontWeight: "800"
   }
 });
+
+
+
+
+

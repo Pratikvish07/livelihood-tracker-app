@@ -9,7 +9,43 @@ function Text({ children, ...props }) {
   return <RNText {...props}>{translated}</RNText>;
 }
 
-export default function ProfileTab({ user, onLogout }) {
+function formatDateTime(value) {
+  if (!value) {
+    return "-";
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return parsed.toLocaleString("en-IN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true
+  });
+}
+
+function formatDuration(totalSeconds) {
+  const safeSeconds = Math.max(0, Number(totalSeconds) || 0);
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
+  const seconds = safeSeconds % 60;
+
+  return [hours, minutes, seconds]
+    .map((value) => String(value).padStart(2, "0"))
+    .join(":");
+}
+
+export default function ProfileTab({ user, sessionInfo, onLogout }) {
+  const sessionDuration = sessionInfo?.isActive
+    ? formatDuration(sessionInfo.elapsedSeconds)
+    : user.lastSessionDurationLabel || formatDuration(user.lastSessionDurationSeconds);
+
   return (
     <View style={styles.tabContent}>
       <View style={styles.profileHeroCard}>
@@ -42,6 +78,22 @@ export default function ProfileTab({ user, onLogout }) {
         <View style={styles.profileInfoRow}>
           <Text style={styles.profileInfoLabel}>Language</Text>
           <Text style={styles.profileInfoValue}>{user.language || "-"}</Text>
+        </View>
+        <View style={styles.profileInfoRow}>
+          <Text style={styles.profileInfoLabel}>Login Time</Text>
+          <Text style={styles.profileInfoValue}>
+            {formatDateTime(sessionInfo?.loginAt || user.sessionStartedAt)}
+          </Text>
+        </View>
+        <View style={styles.profileInfoRow}>
+          <Text style={styles.profileInfoLabel}>Logout Time</Text>
+          <Text style={styles.profileInfoValue}>
+            {sessionInfo?.isActive ? "Running" : formatDateTime(sessionInfo?.logoutAt || user.sessionEndedAt)}
+          </Text>
+        </View>
+        <View style={styles.profileInfoRow}>
+          <Text style={styles.profileInfoLabel}>Session Duration</Text>
+          <Text style={styles.profileInfoValue}>{sessionDuration}</Text>
         </View>
         <Text style={styles.secureNote}>
           Secure login note: Session is protected using role-based controls.

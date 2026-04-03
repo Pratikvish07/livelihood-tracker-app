@@ -3,11 +3,10 @@ import { Pressable, Text, View } from "react-native";
 import { useI18n } from "../i18n/I18nProvider";
 import styles from "../styles/appStyles";
 
-const TABS = ["Home", "Loan", "Profile"];
+const TABS = ["Home", "Profile"];
 const TAB_META = {
-  Home: { icon: "⌂" },
-  Loan: { icon: "₹" },
-  Profile: { icon: "◎" }
+  Home: { icon: "H" },
+  Profile: { icon: "P" }
 };
 
 export default function BottomNav({ active, setActive }) {
@@ -26,7 +25,7 @@ export default function BottomNav({ active, setActive }) {
           >
             <View style={[styles.navIconWrap, isActive && styles.navIconWrapActive]}>
               <Text style={[styles.navIconText, isActive && styles.navIconTextActive]}>
-                {TAB_META[item]?.icon || "•"}
+                {TAB_META[item]?.icon || "."}
               </Text>
             </View>
             <Text style={[styles.navText, isActive && styles.navTextActive]}>
