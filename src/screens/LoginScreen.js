@@ -20,7 +20,7 @@ import {
   fetchGpsByBlock,
   fetchVillagesByGp
 } from "../services/masterApi";
-import styles from "../styles/appStyles";
+import styles from "../styles/loginScreenStyles";
 import {
   generateCrpId,
   isAadhaarValid,

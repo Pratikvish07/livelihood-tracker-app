@@ -1,6 +1,8 @@
 const API_BASE_URL =
   process.env.EXPO_PUBLIC_API_BASE_URL || "https://trlm.pickitover.com/api";
 const INVALID_BASE_URL_MARKERS = ["YOUR_API_HOST", "YOUR_PORT"];
+let authToken = "";
+
 
 export const API_ENDPOINTS = {
   master: {
@@ -13,8 +15,7 @@ export const API_ENDPOINTS = {
   auth: {
     crpSignup:
       process.env.EXPO_PUBLIC_CRP_SIGNUP_PATH || "/api/auth/crp/signup",
-    login: process.env.EXPO_PUBLIC_LOGIN_PATH || "/api/auth/crp/login",
-    allCrps: process.env.EXPO_PUBLIC_ALL_CRPS_PATH || "/api/auth/crp/all"
+    login: process.env.EXPO_PUBLIC_LOGIN_PATH || "/api/auth/crp/login"
   }
 };
 
@@ -46,13 +47,20 @@ function normalizeEndpointPath(path) {
 }
 
 function buildUrl(path) {
-  const normalizedPath = normalizeEndpointPath(path);
+  let normalizedPath = normalizeEndpointPath(path);
 
   if (/^https?:\/\//i.test(normalizedPath)) {
     return normalizedPath;
   }
 
-  return `${getBaseUrl()}${normalizedPath}`;
+  const baseUrl = getBaseUrl();
+  const baseEndsWithApi = /\/api$/i.test(baseUrl);
+
+  if (baseEndsWithApi && /^\/api(\/|$)/i.test(normalizedPath)) {
+    normalizedPath = normalizedPath.replace(/^\/api(?=\/|$)/i, "");
+  }
+
+  return `${baseUrl}${normalizedPath}`;
 }
 
 function ensureArray(payload) {
@@ -128,9 +136,15 @@ async function parseApiResponse(response, entityName) {
 
 async function executeRequest(path, entityName, options = {}) {
   const requestUrl = buildUrl(path);
+  const authHeaders = authToken
+    ? {
+        Authorization: `Bearer ${authToken}`
+      }
+    : {};
   const response = await fetch(requestUrl, {
     headers: {
       Accept: "application/json",
+      ...authHeaders,
       ...options.headers
     },
     ...options
@@ -240,27 +254,11 @@ export async function loginUser(payload) {
     body: JSON.stringify(payload)
   });
 }
-export async function fetchAllCrps() {
-  const payload = await executeRequest(API_ENDPOINTS.auth.allCrps, "CRP list");
 
-  return ensureArray(payload)
-    .map((item) => ({
-      id:
-        item?.crpRegistrationId ||
-        item?.CrpRegistrationId ||
-        item?.id ||
-        item?.Id,
-      crpId: String(item?.crpId || item?.CRPId || item?.crpID || "").trim(),
-      fullName: String(item?.fullName || item?.name || item?.userName || "").trim(),
-      blockId: item?.blockId || item?.BlockId || "",
-      villageId: item?.villageId || item?.VillageId || "",
-      approvalStatus: item?.approvalStatus,
-      createdDate: item?.createdDate || "",
-      name: `${String(item?.crpId || item?.CRPId || "").trim()} - ${String(
-        item?.fullName || item?.name || item?.userName || ""
-      ).trim()}`
-    }))
-    .filter((item) => item.id && item.crpId && item.fullName);
+export function setAuthToken(token) {
+  authToken = String(token || "").trim();
 }
 
-
+export function clearAuthToken() {
+  authToken = "";
+}

@@ -20,9 +20,11 @@ import {
   isPasswordStrong
 } from "../utils/appCalculations";
 import {
+  clearAuthToken,
   fetchGpsByBlock,
   fetchVillagesByGp,
   loginUser,
+  setAuthToken,
   submitCrpSignup
 } from "../services/masterApi";
 import {
@@ -146,10 +148,14 @@ export default function AppRouter() {
         }
 
         if (savedUserProfile) {
+          const parsedUserProfile = JSON.parse(savedUserProfile);
           setUser((prev) => ({
             ...prev,
-            ...JSON.parse(savedUserProfile)
+            ...parsedUserProfile
           }));
+          if (parsedUserProfile?.token) {
+            setAuthToken(parsedUserProfile.token);
+          }
         }
       } catch (error) {
         console.error("Error loading saved app preferences:", error);
@@ -446,6 +452,7 @@ export default function AppRouter() {
         sessionActive: true
       };
 
+      setAuthToken(token);
       setSessionInfo(nextSessionInfo);
       setUser(userWithSession);
       persistUserProfile(userWithSession);
@@ -756,6 +763,7 @@ export default function AppRouter() {
           });
           setUser(finalUserProfile);
 
+          clearAuthToken();
           dispatch(logout());
           try {
             await persistUserProfile(finalUserProfile);
