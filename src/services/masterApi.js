@@ -10,9 +10,15 @@ export const API_ENDPOINTS = {
     blocksByDistrict: (districtId) => `/api/master/block/${districtId}`,
     gpsByBlock: (blockId) => `/api/master/gp/${blockId}`,
     villagesByGp: (gpId) => `/api/master/village/${gpId}`,
-    crpTypes: process.env.EXPO_PUBLIC_CRP_TYPES_PATH || "/api/crptype"
+    crpTypes: process.env.EXPO_PUBLIC_CRP_TYPES_PATH || "/api/crptype",
+    activities: process.env.EXPO_PUBLIC_ACTIVITY_PATH || "/api/activity",
+    subCategoriesByActivity: (activityId) =>
+      `${process.env.EXPO_PUBLIC_SUBCATEGORY_BY_ACTIVITY_PATH || "/api/subcategory/by-activity"}/${activityId}`,
+    shgMembersByVillage: (villageId) =>
+      `${process.env.EXPO_PUBLIC_SHG_MEMBERS_BY_VILLAGE_PATH || "/api/master/shg-member"}/${villageId}`
   },
   auth: {
+    allCrps: process.env.EXPO_PUBLIC_ALL_CRPS_PATH || "/api/auth/crp/all",
     crpSignup:
       process.env.EXPO_PUBLIC_CRP_SIGNUP_PATH || "/api/auth/crp/signup",
     login: process.env.EXPO_PUBLIC_LOGIN_PATH || "/api/auth/crp/login"
@@ -47,20 +53,13 @@ function normalizeEndpointPath(path) {
 }
 
 function buildUrl(path) {
-  let normalizedPath = normalizeEndpointPath(path);
+  const normalizedPath = normalizeEndpointPath(path);
 
   if (/^https?:\/\//i.test(normalizedPath)) {
     return normalizedPath;
   }
 
-  const baseUrl = getBaseUrl();
-  const baseEndsWithApi = /\/api$/i.test(baseUrl);
-
-  if (baseEndsWithApi && /^\/api(\/|$)/i.test(normalizedPath)) {
-    normalizedPath = normalizedPath.replace(/^\/api(?=\/|$)/i, "");
-  }
-
-  return `${baseUrl}${normalizedPath}`;
+  return `${getBaseUrl()}${normalizedPath}`;
 }
 
 function ensureArray(payload) {
@@ -233,6 +232,113 @@ export async function fetchCrpTypes() {
     "name",
     "label"
   ]);
+}
+
+export async function fetchActivities() {
+  const payload = await executeRequest(API_ENDPOINTS.master.activities, "activities");
+
+  return ensureArray(payload)
+    .map((item, index) => ({
+      id:
+        item?.activityId ??
+        item?.ActivityId ??
+        item?.id ??
+        item?.Id ??
+        index,
+      name:
+        item?.activityName ??
+        item?.ActivityName ??
+        item?.name ??
+        item?.Name ??
+        item?.label ??
+        ""
+    }))
+    .filter((item) => item.name);
+}
+
+export async function fetchSubCategoriesByActivity(activityId) {
+  const payload = await executeRequest(
+    API_ENDPOINTS.master.subCategoriesByActivity(activityId),
+    "sub-categories"
+  );
+
+  return ensureArray(payload)
+    .map((item, index) => ({
+      id:
+        item?.subCategoryId ??
+        item?.SubCategoryId ??
+        item?.id ??
+        item?.Id ??
+        index,
+      activityId:
+        item?.activityId ??
+        item?.ActivityId ??
+        "",
+      name:
+        item?.subCategoryName ??
+        item?.SubCategoryName ??
+        item?.name ??
+        item?.Name ??
+        item?.label ??
+        ""
+    }))
+    .filter((item) => item.name);
+}
+
+export async function fetchAllCrps() {
+  const payload = await executeRequest(API_ENDPOINTS.auth.allCrps, "CRP list");
+
+  return ensureArray(payload)
+    .map((item) => ({
+      ...item,
+      id:
+        item?.id ??
+        item?.crpRegistrationId ??
+        item?.CrpRegistrationId ??
+        item?.crpId,
+      name: item?.fullName || item?.name || item?.crpId || ""
+    }))
+    .filter((item) => item.id !== undefined && item.id !== null && item.id !== "");
+}
+
+export async function fetchShgMembersByVillage(villageId) {
+  const payload = await executeRequest(
+    API_ENDPOINTS.master.shgMembersByVillage(villageId),
+    "SHG members"
+  );
+
+  return ensureArray(payload)
+    .map((item, index) => ({
+      ...item,
+      id:
+        item?.id ??
+        item?.memberId ??
+        item?.MemberId ??
+        item?.shgMemberId ??
+        item?.SHGMemberId ??
+        `${item?.shgName || item?.SHGName || "SHG"}-${item?.memberName || item?.name || index}`,
+      shgCode:
+        item?.shgCode ||
+        item?.SHGCode ||
+        "",
+      shgName:
+        item?.shgName ||
+        item?.SHGName ||
+        item?.shg ||
+        item?.groupName ||
+        "",
+      memberName:
+        item?.memberName ||
+        item?.MemberName ||
+        item?.name ||
+        item?.fullName ||
+        "",
+      mobileNo:
+        item?.mobileNo ||
+        item?.MobileNo ||
+        ""
+    }))
+    .filter((item) => item.shgName && item.memberName);
 }
 
 export async function submitCrpSignup(payload) {

@@ -1146,11 +1146,13 @@ const styles = StyleSheet.create({
     borderColor: "#fecaca",
     gap: 10
   },
-  bottomNav: {
+  bottomNavShell: {
     position: "absolute",
     bottom: 0,
     left: 0,
-    right: 0,
+    right: 0
+  },
+  bottomNav: {
     flexDirection: "row",
     backgroundColor: "#fbfdff",
     borderTopWidth: 1,
@@ -1162,6 +1164,43 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 10,
     elevation: 12
+  },
+  languageMenuPopup: {
+    alignSelf: "flex-end",
+    marginRight: 12,
+    marginBottom: 8,
+    width: 172,
+    backgroundColor: "#ffffff",
+    borderWidth: 1,
+    borderColor: "#dbe3ea",
+    borderRadius: 14,
+    paddingVertical: 6,
+    shadowColor: "#0f172a",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 8
+  },
+  languageMenuItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 2
+  },
+  languageMenuItemActive: {
+    backgroundColor: "#eff6ff"
+  },
+  languageMenuText: {
+    color: "#102a43",
+    fontSize: 14,
+    fontWeight: "700"
+  },
+  languageMenuHint: {
+    color: "#64748b",
+    fontSize: 11,
+    fontWeight: "600"
+  },
+  languageMenuTextActive: {
+    color: "#1e3a8a"
   },
   navItem: {
     flex: 1,
@@ -1200,6 +1239,23 @@ const styles = StyleSheet.create({
   },
   navTextActive: {
     color: "#0f766e"
+  },
+  languageNavItem: {
+    flex: 1.2
+  },
+  languageSwitcherButton: {
+    minWidth: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#dbeafe",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 8
+  },
+  languageSwitcherCode: {
+    color: "#1e3a8a",
+    fontSize: 11,
+    fontWeight: "800"
   },
 
   // Enhanced Login/Signup Screen Styles

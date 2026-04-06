@@ -5,8 +5,17 @@ import { useTranslatedValue } from "../../i18n/I18nProvider";
 import styles from "../../styles/appStyles";
 
 function Text({ children, ...props }) {
-  const translated = useTranslatedValue(typeof children === "string" ? children : children);
-  return <RNText {...props}>{translated}</RNText>;
+  const plainText =
+    typeof children === "string" || typeof children === "number"
+      ? String(children)
+      : "";
+  const translated = useTranslatedValue(plainText);
+  const resolvedChildren =
+    plainText && typeof translated === "string" && translated.trim()
+      ? translated
+      : children;
+
+  return <RNText {...props}>{resolvedChildren}</RNText>;
 }
 
 function formatDateTime(value) {

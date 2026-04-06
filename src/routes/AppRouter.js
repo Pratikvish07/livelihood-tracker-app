@@ -9,7 +9,8 @@ import LanguageScreen from "../screens/LanguageScreen";
 import LoginScreen from "../screens/LoginScreen";
 import SplashScreen from "../screens/SplashScreen";
 import { I18nProvider } from "../i18n/I18nProvider";
-import { translateText } from "../i18n/translations";
+import { detectBrowserLanguage, persistLanguage, readStoredLanguage } from "../i18n/config";
+import { getLanguageCode, translateText } from "../i18n/translations";
 import styles from "../styles/appStyles";
 import {
   detectRole,
@@ -42,6 +43,15 @@ const USER_STORAGE_KEY = "trlmUserProfile";
 const USER_DIRECTORY_KEY = "trlmUserProfilesByIdentity";
 const STATIC_HONORARIUM_PER_VISIT = 150;
 const STATIC_LAST_HONORARIUM_RECEIVED = 1200;
+const STATIC_DASHBOARD_FALLBACK = {
+  totalVisits30: 18,
+  totalMembersVisited: 47,
+  totalMembersVisitedToday: 5,
+  attendanceDays: 12,
+  honorariumReceived: STATIC_LAST_HONORARIUM_RECEIVED,
+  visitGraph: [2, 3, 4, 2, 5, 2],
+  activityGraph: [1, 2, 3, 2, 4, 3]
+};
 const ASSIGNED_SHG_MEMBERS = [
   {
     id: "asg-1",
@@ -139,13 +149,11 @@ export default function AppRouter() {
     const loadPreferences = async () => {
       try {
         const [savedLanguage, savedUserProfile] = await Promise.all([
-          AsyncStorage.getItem("selectedLanguage"),
+          readStoredLanguage(),
           AsyncStorage.getItem(USER_STORAGE_KEY)
         ]);
 
-        if (savedLanguage) {
-          dispatch(setLanguage(savedLanguage));
-        }
+        dispatch(setLanguage(savedLanguage || detectBrowserLanguage()));
 
         if (savedUserProfile) {
           const parsedUserProfile = JSON.parse(savedUserProfile);
@@ -224,11 +232,12 @@ export default function AppRouter() {
   };
 
   const handleSetLanguage = async (selectedLanguage) => {
-    dispatch(setLanguage(selectedLanguage));
+    const normalizedLanguage = getLanguageCode(selectedLanguage);
+    dispatch(setLanguage(normalizedLanguage));
     try {
-      await AsyncStorage.setItem('selectedLanguage', selectedLanguage);
+      await persistLanguage(normalizedLanguage);
     } catch (error) {
-      console.error('Error saving language:', error);
+      console.error("Error saving language:", error);
     }
   };
   const [pendingApprovalCrpId, setPendingApprovalCrpId] = useState("");
@@ -329,6 +338,15 @@ export default function AppRouter() {
         .filter(Boolean)
     ).size;
     const honorariumToBeClaimed = totalVisits30 * STATIC_HONORARIUM_PER_VISIT;
+
+    if (totalVisits30 === 0) {
+      return {
+        ...STATIC_DASHBOARD_FALLBACK,
+        honorariumToBeClaimed:
+          STATIC_DASHBOARD_FALLBACK.totalVisits30 * STATIC_HONORARIUM_PER_VISIT,
+        shgMembersAssigned: assignedShgMembers.length
+      };
+    }
 
     return {
       totalVisits30,
@@ -668,7 +686,8 @@ export default function AppRouter() {
       reportDate: reportPayload.reportDate,
       imageName: reportPayload.imageName,
       videoName: reportPayload.videoName,
-      distanceMeters: reportPayload.distanceMeters
+      distanceMeters: reportPayload.distanceMeters,
+      remarks: reportPayload.remarks || ""
     };
 
     setActivities((prev) => [nextActivity, ...prev].slice(0, 30));
@@ -780,7 +799,7 @@ export default function AppRouter() {
   };
 
   return (
-    <I18nProvider language={language}>
+    <I18nProvider language={language} onChangeLanguage={handleSetLanguage}>
       <SafeAreaView style={styles.safe}>
       {step === "splash" ? <SplashScreen /> : null}
 
@@ -845,7 +864,7 @@ export default function AppRouter() {
               ) : null}
             </ScrollView>
           </View>
-          <BottomNav active={activeTab} setActive={setActiveTab} />
+          <BottomNav active={activeTab} setActive={setActiveTab} currentLanguage={language} onLanguageChange={handleSetLanguage} />
         </View>
       ) : null}
       </SafeAreaView>

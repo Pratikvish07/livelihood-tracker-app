@@ -1,6 +1,6 @@
 import React from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
-import { LANGUAGE_OPTIONS } from "../constants/appData";
+import { LANGUAGE_OPTIONS } from "../i18n/translations";
 import PrimaryButton from "../components/PrimaryButton";
 import styles from "../styles/appStyles";
 import { useI18n } from "../i18n/I18nProvider";
@@ -14,7 +14,7 @@ export default function LanguageScreen({ language, setLanguage, onContinue }) {
         <View style={styles.languageCardHeader}>
           <Text style={styles.languageCardTitle}>{t("Select Interface Language")}</Text>
           <Text style={styles.languageCardHint}>
-            {t("Pick any language and the app will translate labels dynamically using Google Translate when configured.")}
+            {t("Pick your preferred language. The app updates instantly without reloading.")}
           </Text>
         </View>
 
@@ -24,12 +24,12 @@ export default function LanguageScreen({ language, setLanguage, onContinue }) {
 
         <View style={styles.languageGrid}>
         {LANGUAGE_OPTIONS.map((item) => {
-          const active = language === item.name;
+          const active = language === item.code;
           return (
             <Pressable
               key={item.name}
               style={[styles.languageOption, active && styles.languageOptionActive]}
-              onPress={() => setLanguage(item.name)}
+              onPress={() => setLanguage(item.code)}
             >
               <View style={styles.languageOptionLeft}>
                 <Text style={[styles.languageOptionPrefix, active && styles.languageOptionPrefixActive]}>

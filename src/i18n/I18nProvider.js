@@ -1,84 +1,59 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { getFallbackTranslation } from "./translations";
-import { getCachedTranslation, translateBatch } from "./googleTranslate";
-import { LANGUAGES } from "../constants/appData";
+import i18n, { persistLanguage } from "./config";
+import { getLanguageCode } from "./translations";
 
 const I18nContext = createContext({
-  language: "English",
+  language: "en",
+  setLanguage: async () => {},
   t: (value) => value
 });
 
-const CORE_LABELS = [
-  "Language Selection",
-  "Choose your preferred language",
-  "Continue",
-  "Select Interface Language",
-  "Available Across India",
-  "Pick any language and the app will translate labels dynamically using Google Translate when configured.",
-  "Government of Tripura",
-  "Tripura Rural Livelihood Mission",
-  "Home",
-  "Loan",
-  "Profile",
-  "SHG",
-  "Reports",
-  "Save",
-  "Save & Next",
-  "Back",
-  "Log-In",
-  "Sign-up",
-  "Logout",
-  "Loading",
-  "SRS Livelihood App",
-  "Digital Livelihood Monitoring System",
-  "Selected",
-  "Available",
-  "Get Your Location",
-  "Getting your location...",
-  "Tap below to get your current GPS location",
-  "Location Captured!",
-  "Get GPS Location",
-  "Use Default Location",
-  "Confirm & Continue"
-].concat(LANGUAGES);
-
-export function I18nProvider({ language, children }) {
-  const [dynamicTranslations, setDynamicTranslations] = useState({});
+export function I18nProvider({ language, onChangeLanguage, children }) {
+  const resolvedLanguage = getLanguageCode(language);
+  const [, setLanguageVersion] = useState(0);
 
   useEffect(() => {
-    let isMounted = true;
+    const handleLanguageChange = () => {
+      setLanguageVersion((current) => current + 1);
+    };
 
-    setDynamicTranslations({});
-
-    translateBatch(language, CORE_LABELS).then((translations) => {
-      if (!isMounted || !translations) {
-        return;
-      }
-
-      setDynamicTranslations(translations);
-    });
+    i18n.on("languageChanged", handleLanguageChange);
 
     return () => {
-      isMounted = false;
+      i18n.off("languageChanged", handleLanguageChange);
     };
-  }, [language]);
+  }, []);
+
+  useEffect(() => {
+    if (i18n.language !== resolvedLanguage) {
+      i18n.changeLanguage(resolvedLanguage);
+    }
+  }, [resolvedLanguage]);
 
   const value = useMemo(
     () => ({
-      language,
-      t: (text) => {
+      language: resolvedLanguage,
+      setLanguage: async (nextLanguage) => {
+        const nextCode = getLanguageCode(nextLanguage);
+        await persistLanguage(nextCode);
+        await i18n.changeLanguage(nextCode);
+        if (onChangeLanguage) {
+          await onChangeLanguage(nextCode);
+        }
+      },
+      t: (text, options = {}) => {
         if (typeof text !== "string") {
           return text;
         }
 
-        return (
-          dynamicTranslations[text] ||
-          getCachedTranslation(language, text) ||
-          getFallbackTranslation(language, text)
-        );
+        return i18n.t(text, {
+          lng: resolvedLanguage,
+          defaultValue: text,
+          ...options
+        });
       }
     }),
-    [dynamicTranslations, language]
+    [onChangeLanguage, resolvedLanguage]
   );
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
@@ -89,40 +64,13 @@ export function useI18n() {
 }
 
 export function useTranslatedValue(value) {
-  const { language, t } = useI18n();
-  const [translatedValue, setTranslatedValue] = useState(() => {
+  const { t } = useI18n();
+
+  return useMemo(() => {
     if (typeof value !== "string") {
       return value;
     }
 
     return t(value);
-  });
-
-  useEffect(() => {
-    let isMounted = true;
-
-    if (typeof value !== "string") {
-      setTranslatedValue(value);
-      return () => {
-        isMounted = false;
-      };
-    }
-
-    const fallbackValue = t(value);
-    setTranslatedValue(fallbackValue);
-
-    translateBatch(language, [value]).then((translations) => {
-      if (!isMounted) {
-        return;
-      }
-
-      setTranslatedValue(translations?.[value] || fallbackValue);
-    });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [language, t, value]);
-
-  return translatedValue;
+  }, [t, value]);
 }

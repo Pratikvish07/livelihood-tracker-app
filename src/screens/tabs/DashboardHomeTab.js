@@ -1,33 +1,32 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Alert, Image, Modal, Platform, Pressable, ScrollView, Text as RNText, TextInput as RNTextInput, View } from "react-native";
+import { Alert, Image, Platform, Pressable, ScrollView, Text as RNText, TextInput as RNTextInput, View } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useTranslatedValue } from "../../i18n/I18nProvider";
 import { getCurrentLocation, calculateDistance } from "../../utils/geofence";
-import { fetchAllCrps, fetchGpsByBlock, fetchVillagesByGp } from "../../services/masterApi";
+import { fetchActivities, fetchAllCrps, fetchGpsByBlock, fetchShgMembersByVillage, fetchSubCategoriesByActivity, fetchVillagesByGp } from "../../services/masterApi";
 import { pageStyles, wrStyles, neStyles, smStyles, flowStyles, apStyles, nfStyles, tsCardStyles, tsDetailStyles, fsStyles, pastStyles, txnStyles, lhcboStyles, lhGuideStyles, lhcboStatusStyles, lhStyles } from "../../styles/dashboardHomeStyles";
 
-function stringifyChildren(children) {
-  if (typeof children === "string" || typeof children === "number") {
-    return String(children);
-  }
-
-  if (Array.isArray(children)) {
-    const parts = children.map((child) => stringifyChildren(child));
-    return parts.every((part) => typeof part === "string") ? parts.join("") : null;
-  }
-
-  return null;
-}
-
 function Text({ children, ...props }) {
-  const rawText = stringifyChildren(children);
-  const translated = useTranslatedValue(rawText ?? children);
-  return <RNText {...props}>{translated}</RNText>;
+  const plainText = typeof children === "string" || typeof children === "number"
+    ? String(children)
+    : "";
+  const translated = useTranslatedValue(plainText);
+  const resolvedChildren =
+    plainText && typeof translated === "string" && translated.trim()
+      ? translated
+      : children;
+
+  return <RNText {...props}>{resolvedChildren}</RNText>;
 }
 
 function TextInput({ placeholder, ...props }) {
   const translatedPlaceholder = useTranslatedValue(placeholder);
-  return <RNTextInput {...props} placeholder={translatedPlaceholder} />;
+  const resolvedPlaceholder =
+    typeof translatedPlaceholder === "string" && translatedPlaceholder.trim()
+      ? translatedPlaceholder
+      : placeholder;
+
+  return <RNTextInput {...props} placeholder={resolvedPlaceholder} />;
 }
 
 function DropdownField({
@@ -76,28 +75,66 @@ function DropdownField({
 }
 
 function CycleDropdown({ value, options, onChange, style }) {
+  const [open, setOpen] = useState(false);
+  const normalizedOptions = options.map((item) =>
+    typeof item === "string" ? item : item?.name || item?.label || ""
+  ).filter(Boolean);
+
   return (
-    <Pressable
-      style={[flowStyles.ddBox, style]}
-      disabled={options.length === 0}
-      onPress={() => {
-        if (options.length === 0) {
-          return;
-        }
-        const currentIndex = options.indexOf(value);
-        const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % options.length : 0;
-        onChange(options[nextIndex]);
-      }}
-    >
-      <Text style={flowStyles.ddText}>{value || "No data"}</Text>
-      <Text style={flowStyles.ddArrow}>v</Text>
-    </Pressable>
+    <View style={flowStyles.ddWrap}>
+      <Pressable
+        style={[flowStyles.ddBox, style]}
+        disabled={normalizedOptions.length === 0}
+        onPress={() => {
+          if (!normalizedOptions.length) {
+            return;
+          }
+          setOpen((prev) => !prev);
+        }}
+      >
+        <Text style={flowStyles.ddText}>{value || "No data"}</Text>
+        <Text style={flowStyles.ddArrow}>{open ? "^" : "v"}</Text>
+      </Pressable>
+
+      {open ? (
+        <View style={flowStyles.ddMenu}>
+          <ScrollView nestedScrollEnabled style={flowStyles.ddScroll}>
+            {normalizedOptions.map((option) => {
+              const active = option === value;
+
+              return (
+                <Pressable
+                  key={option}
+                  style={[flowStyles.ddOption, active && flowStyles.ddOptionActive]}
+                  onPress={() => {
+                    onChange(option);
+                    setOpen(false);
+                  }}
+                >
+                  <Text
+                    style={[flowStyles.ddOptionText, active && flowStyles.ddOptionTextActive]}
+                  >
+                    {option}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+      ) : null}
+    </View>
   );
 }
 
 function firstOption(options) {
   return options[0] || "";
 }
+
+const FARM_UNIT_AREA_OPTIONS = ["Kani", "Gonda"];
+const FARM_TYPE_OPTIONS = ["Seasonal", "Perennial"];
+const FARM_SEASON_OPTIONS = ["Rabi", "Kharif", "Summer", "Winter", "Rainy"];
+const FARM_LAND_OPTIONS = ["Tilla", "Low", "Plain"];
+const FARM_PRODUCTION_UNIT_OPTIONS = ["KG", "Quintal"];
 
 export default function DashboardHomeTab({
   user,
@@ -118,19 +155,24 @@ export default function DashboardHomeTab({
   onBackToDashboard
 }) {
   const reportGeofenceRadius = 150;
+  const [apiAssignedShgMembers, setApiAssignedShgMembers] = useState([]);
   const [showCrpTypeMenu, setShowCrpTypeMenu] = useState(false);
+  const [activityOptions, setActivityOptions] = useState([]);
+  const [subCategoryOptions, setSubCategoryOptions] = useState([]);
   const [selectedCrpType, setSelectedCrpType] = useState(user.idType || "");
   const crpTypeOptions = [];
+  const effectiveAssignedShgMembers =
+    apiAssignedShgMembers.length > 0 ? apiAssignedShgMembers : assignedShgMembers;
   const shgNames = Array.from(
-    new Set(assignedShgMembers.map((item) => item.shgName).filter(Boolean))
+    new Set(effectiveAssignedShgMembers.map((item) => item.shgName).filter(Boolean))
   );
-  const activityTypes = [];
-  const subCategories = [];
+  const activityTypes = activityOptions.length ? activityOptions : [{ id: 1, name: "Farm" }];
+  const subCategories = subCategoryOptions.length ? subCategoryOptions : [{ id: 1, name: "Farm" }];
   const livelihoodCboTypeOptions = [];
   const livelihoodCboNameOptions = [];
   const livelihoodCboActivityOptions = [];
   const [shgName, setShgName] = useState(firstOption(shgNames));
-  const shgMembers = assignedShgMembers
+  const shgMembers = effectiveAssignedShgMembers
     .filter((item) => !shgName || item.shgName === shgName)
     .map((item) => item.memberName);
   const [memberName, setMemberName] = useState(firstOption(shgMembers));
@@ -160,6 +202,7 @@ export default function DashboardHomeTab({
   const [uploadedVideoName, setUploadedVideoName] = useState("");
   const [uploadedVideoDate, setUploadedVideoDate] = useState("");
   const [uploadedVideoUri, setUploadedVideoUri] = useState("");
+  const [trackingRemarks, setTrackingRemarks] = useState("");
   const [supportStage, setSupportStage] = useState("");
   const [activityProfile, setActivityProfile] = useState({
     activityName: "",
@@ -275,10 +318,50 @@ export default function DashboardHomeTab({
   const dashboardAlertCount = dashboardNotificationItems.length;
   const firstDashboardNotification =
     dashboardNotificationItems[0] || "No pending alerts";
+  const dashboardInlineAlertMessage =
+    dashboardNotificationItems.length > 0
+      ? dashboardNotificationItems.join(" | ")
+      : "No pending alerts";
   const selectedAssignedMember =
-    assignedShgMembers.find((item) => item.memberName === memberName) ||
-    assignedShgMembers[0] ||
+    effectiveAssignedShgMembers.find(
+      (item) => item.shgName === shgName && item.memberName === memberName
+    ) ||
+    effectiveAssignedShgMembers.find((item) => item.memberName === memberName) ||
+    effectiveAssignedShgMembers[0] ||
     null;
+  const selectedShgName = selectedAssignedMember?.shgName || shgName || "-";
+  const selectedMemberName = selectedAssignedMember?.memberName || memberName || "-";
+
+  const renderAlertPopup = () =>
+    showDashboardAlerts ? (
+      <View pointerEvents="box-none" style={pageStyles.alertPopupOverlay}>
+        <Pressable
+          style={pageStyles.alertPopupCard}
+          onPress={() => setShowDashboardAlerts(false)}
+        >
+          <View style={pageStyles.dashboardAlertHeader}>
+            <View style={pageStyles.dashboardAlertIconWrap}>
+              <RNText style={pageStyles.dashboardAlertIcon}>!</RNText>
+            </View>
+            <View style={pageStyles.dashboardAlertCopy}>
+              <RNText style={pageStyles.dashboardAlertTitle}>Notifications</RNText>
+              <RNText style={pageStyles.dashboardAlertHint}>{firstDashboardNotification}</RNText>
+            </View>
+            <View style={pageStyles.dashboardAlertBadge}>
+              <RNText style={pageStyles.dashboardAlertBadgeText}>{dashboardAlertCount}</RNText>
+            </View>
+          </View>
+          <View style={pageStyles.dashboardAlertList}>
+            {dashboardNotificationItems.map((item, index) => (
+              <View key={`${item}-${index}`} style={pageStyles.dashboardAlertListRow}>
+                <View style={pageStyles.dashboardAlertListDot} />
+                <RNText style={pageStyles.dashboardAlertListText}>{item}</RNText>
+              </View>
+            ))}
+          </View>
+        </Pressable>
+      </View>
+    ) : null;
 
   // Sample graph data
   const graphData = {
@@ -381,6 +464,12 @@ export default function DashboardHomeTab({
   }, [selectedPieMeta]);
 
   const isWithin50Meters = distanceToMember !== null && distanceToMember <= 50;
+  const geoStatusVariant =
+    locationPromptRequired || distanceToMember === null
+      ? "idle"
+      : isWithin50Meters
+        ? "green"
+        : "red";
   const selectedGp =
     gpOptions.find((item) => String(item.id) === String(selectedGpId)) || null;
   const selectedVillage =
@@ -552,16 +641,67 @@ export default function DashboardHomeTab({
   }, [memberName, homeView]);
 
   useEffect(() => {
-    if (!shgName && shgNames.length > 0) {
+    const hasSelectedShg = shgNames.some((item) => item === shgName);
+
+    if ((!shgName || !hasSelectedShg) && shgNames.length > 0) {
       setShgName(shgNames[0]);
     }
   }, [shgName, shgNames]);
 
   useEffect(() => {
-    if (!memberName && shgMembers.length > 0) {
+    const hasSelectedMember = shgMembers.some((item) => item === memberName);
+
+    if ((!memberName || !hasSelectedMember) && shgMembers.length > 0) {
       setMemberName(shgMembers[0]);
     }
   }, [memberName, shgMembers]);
+
+  useEffect(() => {
+    if (!activityTypes.length) {
+      return;
+    }
+
+    const hasSelectedActivity = activityTypes.some((item) => item.name === activityType);
+
+    if (!activityType || !hasSelectedActivity) {
+      setActivityType(activityTypes[0]?.name || "");
+    }
+  }, [activityType, activityTypes]);
+
+  useEffect(() => {
+    if (!subCategories.length) {
+      return;
+    }
+
+    const hasSelectedSubCategory = subCategories.some((item) => item.name === subCategory);
+
+    if (!subCategory || !hasSelectedSubCategory) {
+      setSubCategory(subCategories[0]?.name || "");
+    }
+  }, [subCategory, subCategories]);
+
+  useEffect(() => {
+    setActivityProfile((prev) => ({
+      ...prev,
+      activityName: activityType || prev.activityName,
+      productionName: subCategory || prev.productionName
+    }));
+  }, [activityType, subCategory]);
+
+  useEffect(() => {
+    if (homeView !== "lhActivityFarm") {
+      return;
+    }
+
+    setActivityProfile((prev) => ({
+      ...prev,
+      areaUnit: prev.areaUnit || FARM_UNIT_AREA_OPTIONS[0],
+      activityMode: prev.activityMode || FARM_TYPE_OPTIONS[0],
+      seasonality: prev.seasonality || FARM_SEASON_OPTIONS[0],
+      landType: prev.landType || FARM_LAND_OPTIONS[0],
+      productionUnit: prev.productionUnit || FARM_PRODUCTION_UNIT_OPTIONS[0]
+    }));
+  }, [homeView]);
 
   useEffect(() => {
     if (homeView !== "workingReport" || !selectedAssignedMember) {
@@ -587,6 +727,116 @@ export default function DashboardHomeTab({
     setSelectedGpId(user.gpId || "");
     setSelectedVillageId(user.villageId || "");
   }, [user.gpId, user.villageId]);
+
+  useEffect(() => {
+    if (!gpOptions.length) {
+      return;
+    }
+
+    const hasSelectedGp = gpOptions.some((item) => String(item.id) === String(selectedGpId));
+
+    if (!hasSelectedGp) {
+      setSelectedGpId(String(gpOptions[0].id));
+    }
+  }, [gpOptions, selectedGpId]);
+
+  useEffect(() => {
+    if (!villageOptions.length) {
+      return;
+    }
+
+    const hasSelectedVillage = villageOptions.some(
+      (item) => String(item.id) === String(selectedVillageId)
+    );
+
+    if (!hasSelectedVillage) {
+      setSelectedVillageId(String(villageOptions[0].id));
+    }
+  }, [selectedVillageId, villageOptions]);
+
+  useEffect(() => {
+    if (!selectedVillageId) {
+      setApiAssignedShgMembers([]);
+      return;
+    }
+
+    let active = true;
+
+    async function loadShgMembers() {
+      try {
+        const payload = await fetchShgMembersByVillage(selectedVillageId);
+
+        if (active) {
+          setApiAssignedShgMembers(payload);
+        }
+      } catch (error) {
+        if (active) {
+          setApiAssignedShgMembers([]);
+        }
+      }
+    }
+
+    loadShgMembers();
+
+    return () => {
+      active = false;
+    };
+  }, [selectedVillageId]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadActivities() {
+      try {
+        const payload = await fetchActivities();
+
+        if (active) {
+          setActivityOptions(payload);
+        }
+      } catch (error) {
+        if (active) {
+          setActivityOptions([{ id: 1, name: "Farm" }]);
+        }
+      }
+    }
+
+    loadActivities();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const selectedActivity = activityTypes.find((item) => item.name === activityType);
+
+    if (!selectedActivity?.id) {
+      setSubCategoryOptions([{ id: 1, name: "Farm" }]);
+      return;
+    }
+
+    let active = true;
+
+    async function loadSubCategories() {
+      try {
+        const payload = await fetchSubCategoriesByActivity(selectedActivity.id);
+
+        if (active) {
+          setSubCategoryOptions(payload);
+        }
+      } catch (error) {
+        if (active) {
+          setSubCategoryOptions([{ id: 1, name: "Farm" }]);
+        }
+      }
+    }
+
+    loadSubCategories();
+
+    return () => {
+      active = false;
+    };
+  }, [activityType, activityTypes]);
 
   useEffect(() => {
     let active = true;
@@ -618,7 +868,10 @@ export default function DashboardHomeTab({
   }, [selectedCrpRegistrationId, user.identity]);
 
   useEffect(() => {
-    if (homeView !== "newEnrolment" || !effectiveBlockId) {
+    const shouldLoadGpOptions =
+      homeView === "dashboard" || homeView === "newEnrolment";
+
+    if (!shouldLoadGpOptions || !effectiveBlockId) {
       setGpOptions([]);
       return;
     }
@@ -646,7 +899,10 @@ export default function DashboardHomeTab({
   }, [effectiveBlockId, homeView]);
 
   useEffect(() => {
-    if (homeView !== "newEnrolment" || !selectedGpId) {
+    const shouldLoadVillageOptions =
+      homeView === "dashboard" || homeView === "newEnrolment";
+
+    if (!shouldLoadVillageOptions || !selectedGpId) {
       setVillageOptions([]);
       return;
     }
@@ -707,8 +963,13 @@ export default function DashboardHomeTab({
     return () => clearTimeout(timer);
   }, [showDashboardAlerts]);
 
-  const handleUploadImage = () => {
-    ImagePicker.launchImageLibraryAsync({
+  const handleUploadImage = (source = "library") => {
+    const picker =
+      source === "camera"
+        ? ImagePicker.launchCameraAsync
+        : ImagePicker.launchImageLibraryAsync;
+
+    picker({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: false,
       quality: 0.8
@@ -725,11 +986,14 @@ export default function DashboardHomeTab({
         setUploadedImageName(asset.fileName || "selected-image");
         setUploadedImageDate(imageDate);
         setUploadedImageUri(asset.uri || "");
-        Alert.alert("Image Uploaded", `Selected: ${asset.fileName || "image"}`);
-      })
-      .catch((error) => {
-        Alert.alert("Upload Failed", error.message || "Unable to select image.");
-      });
+          Alert.alert(
+            source === "camera" ? "Image Captured" : "Image Uploaded",
+            `Selected: ${asset.fileName || "image"}`
+          );
+        })
+        .catch((error) => {
+          Alert.alert("Upload Failed", error.message || "Unable to select image.");
+        });
   };
 
   const handleUploadVideo = () => {
@@ -795,6 +1059,63 @@ export default function DashboardHomeTab({
     });
   };
 
+  const handleSaveTrackedStatus = async (nextView = "technicalSupport") => {
+    if (!selectedAssignedMember) {
+      Alert.alert("Tracking", "No SHG member selected for tracking.");
+      return;
+    }
+
+    if (!uploadedImageUri) {
+      Alert.alert("Tracking", "Capture or upload a live image before saving.");
+      return;
+    }
+
+    if (!uploadedVideoUri) {
+      Alert.alert("Tracking", "Upload a video before saving.");
+      return;
+    }
+
+    if (!trackingRemarks.trim()) {
+      Alert.alert("Tracking", "Remarks are required before saving.");
+      return;
+    }
+
+    const meters = await checkRadiusDistance(false);
+
+    if (meters === null) {
+      Alert.alert("Tracking", "Enable location and validate geolocation before saving.");
+      return;
+    }
+
+    if (meters > 50) {
+      Alert.alert(
+        "Tracking",
+        `Current location is ${meters}m away. Attendance will count only when the CRP matches the assigned SHG location.`
+      );
+      return;
+    }
+
+    onSubmitWorkingReport({
+      assignmentId: selectedAssignedMember.id,
+      shgName: selectedAssignedMember.shgName,
+      memberName: selectedAssignedMember.memberName,
+      reportDate: new Date().toISOString().slice(0, 10),
+      imageName: uploadedImageName || "captured-image",
+      videoName: uploadedVideoName || "uploaded-video",
+      distanceMeters: meters,
+      remarks: trackingRemarks.trim()
+    });
+
+    Alert.alert(
+      "Tracking Saved",
+      "Geolocation matched, evidence uploaded, and CRP attendance counted successfully."
+    );
+
+    if (nextView) {
+      onOpenUpdateData(nextView);
+    }
+  };
+
   const handleUploadLhCboImage = () => {
     ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -820,10 +1141,11 @@ export default function DashboardHomeTab({
       });
   };
 
-  if (homeView === "workingReport") {
-    return (
-      <View style={pageStyles.screen}>
-        <View style={pageStyles.frame}>
+    if (homeView === "workingReport") {
+      return (
+        <View style={pageStyles.screen}>
+          {renderAlertPopup()}
+          <View style={pageStyles.frame}>
           <View style={pageStyles.topRow}>
             <View style={pageStyles.imageCard}>
               <Text style={pageStyles.imageText}>CRP{"\n"}Image</Text>
@@ -946,13 +1268,13 @@ export default function DashboardHomeTab({
             </Text>
           </View>
 
-          <View style={wrStyles.alertRow}>
-            <View style={wrStyles.alertDot} />
-            <Text style={wrStyles.alertText}>
-              Alerts of Pending & Upcoming Works-
-              {alerts.length > 0 ? ` ${alerts[0].message}` : " No pending alerts"}
-            </Text>
-          </View>
+            <Pressable style={wrStyles.alertRow} onPress={() => setShowDashboardAlerts(true)}>
+              <View style={wrStyles.alertDot} />
+              <Text style={wrStyles.alertText}>
+                Alerts of Pending & Upcoming Works-
+                {` ${dashboardInlineAlertMessage}`}
+              </Text>
+            </Pressable>
 
           <View style={wrStyles.activityCard}>
             <Text style={wrStyles.activityTitle}>Different Activities of the Concern CRP</Text>
@@ -975,10 +1297,11 @@ export default function DashboardHomeTab({
     );
   }
 
-  if (homeView === "newEnrolment") {
-    return (
-      <View style={pageStyles.screen}>
-        <View style={pageStyles.frame}>
+    if (homeView === "newEnrolment") {
+      return (
+        <View style={pageStyles.screen}>
+          {renderAlertPopup()}
+          <View style={pageStyles.frame}>
           <View style={pageStyles.topRow}>
             <View style={pageStyles.imageCard}>
               <Text style={pageStyles.imageText}>CRP{"\n"}Image</Text>
@@ -1054,13 +1377,13 @@ export default function DashboardHomeTab({
             </Pressable>
           </View>
 
-          <View style={neStyles.alertRow}>
-            <View style={neStyles.alertDot} />
-            <Text style={neStyles.alertText}>
-              Alerts of Pending & Upcoming Works-
-              {alerts.length > 0 ? ` ${alerts[0].message}` : " No pending alerts"}
-            </Text>
-          </View>
+            <Pressable style={neStyles.alertRow} onPress={() => setShowDashboardAlerts(true)}>
+              <View style={neStyles.alertDot} />
+              <Text style={neStyles.alertText}>
+                Alerts of Pending & Upcoming Works-
+                {` ${dashboardInlineAlertMessage}`}
+              </Text>
+            </Pressable>
 
           <View style={neStyles.activityCard}>
             <Text style={neStyles.activityTitle}>Different Activities of the Concern CRP</Text>
@@ -1125,37 +1448,37 @@ export default function DashboardHomeTab({
             }}
           />
 
-          <DropdownField
-            label="Select Livelihood Activity:"
-            value={activityType}
-            options={activityTypes}
+            <DropdownField
+              label="Select Livelihood Activity:"
+              value={activityType}
+              options={activityTypes}
             open={openActivityDropdown}
             onToggle={() => {
               const next = !openActivityDropdown;
               closeAllShgDropdowns();
               setOpenActivityDropdown(next);
             }}
-            onSelect={(item) => {
-              setActivityType(item);
-              setOpenActivityDropdown(false);
-            }}
-          />
+              onSelect={(item) => {
+                setActivityType(item?.name || item || "");
+                setOpenActivityDropdown(false);
+              }}
+            />
 
-          <DropdownField
-            label="Sub-Category:"
-            value={subCategory}
-            options={subCategories}
+            <DropdownField
+              label="Sub-Category:"
+              value={subCategory}
+              options={subCategories}
             open={openSubCategoryDropdown}
             onToggle={() => {
               const next = !openSubCategoryDropdown;
               closeAllShgDropdowns();
               setOpenSubCategoryDropdown(next);
             }}
-            onSelect={(item) => {
-              setSubCategory(item);
-              setOpenSubCategoryDropdown(false);
-            }}
-          />
+              onSelect={(item) => {
+                setSubCategory(item?.name || item || "");
+                setOpenSubCategoryDropdown(false);
+              }}
+            />
 
           <View style={smStyles.readonlyRow}>
             <Text style={smStyles.readonlyLabel}>Longitude of the Activity*:</Text>
@@ -1385,183 +1708,257 @@ export default function DashboardHomeTab({
     };
     const selectedSubCategory = statusToSubCategory[homeView] || "Farm";
 
-    return (
-      <View style={pageStyles.screen}>
-        <View style={pageStyles.frame}>
-          <View style={flowStyles.headerCard}>
-            <Text style={flowStyles.headerLine}>SHG Member Name: {memberName}</Text>
-            <Text style={flowStyles.headerLine}>SHG Name: {shgName}</Text>
-          </View>
+      return (
+        <View style={pageStyles.screen}>
+          <View style={pageStyles.frame}>
+            <View style={flowStyles.statusHeroCard}>
+              <View style={flowStyles.statusHeroAccent} />
+              <View style={flowStyles.statusHeroCopy}>
+                <Text style={flowStyles.statusHeroEyebrow}>Tracking Context</Text>
+                <Text style={flowStyles.statusHeroTitle}>{selectedMemberName}</Text>
+                <Text style={flowStyles.statusHeroSubtitle}>{selectedShgName}</Text>
+              </View>
+            </View>
 
-          <Text style={flowStyles.statusTitle}>{statusTitleMap[homeView]}</Text>
+            <View style={flowStyles.statusTitleWrap}>
+              <Text style={flowStyles.statusTitle}>{statusTitleMap[homeView]}</Text>
+              <Text style={flowStyles.statusHint}>Choose a module to continue CRP tracking.</Text>
+            </View>
 
-          <Pressable
-            style={flowStyles.profileButton}
-            onPress={() => onOpenUpdateData(activityBySubCategory[selectedSubCategory])}
-          >
-            <Text style={flowStyles.profileButtonText}>Activity Profile</Text>
-          </Pressable>
+            <View style={flowStyles.moduleStack}>
+              <Pressable
+                style={flowStyles.profileButton}
+                onPress={() => onOpenUpdateData(activityBySubCategory[selectedSubCategory])}
+              >
+                <Text style={flowStyles.profileButtonText}>Activity Profile</Text>
+              </Pressable>
 
-          <Pressable
-            style={flowStyles.profileButton}
-            onPress={() => onOpenUpdateData("lhInvestment")}
-          >
-            <Text style={flowStyles.profileButtonText}>Investment Profile</Text>
-          </Pressable>
+              <Pressable
+                style={flowStyles.profileButton}
+                onPress={() => onOpenUpdateData("lhInvestment")}
+              >
+                <Text style={flowStyles.profileButtonText}>Investment Profile</Text>
+              </Pressable>
 
-          <Pressable style={flowStyles.profileButton} onPress={() => onOpenUpdateData("lhIncome")}>
-            <Text style={flowStyles.profileButtonText}>Income Profile</Text>
-          </Pressable>
+              <Pressable style={flowStyles.profileButton} onPress={() => onOpenUpdateData("lhIncome")}>
+                <Text style={flowStyles.profileButtonText}>Income Profile</Text>
+              </Pressable>
 
-          <View style={flowStyles.footerRow}>
-            <View
-              style={[
-                flowStyles.geoDot,
-                isWithin50Meters ? flowStyles.geoDotGreen : flowStyles.geoDotRed
-              ]}
-            />
-            <Pressable
-              style={flowStyles.primarySaveBtn}
-              onPress={() => onOpenUpdateData("technicalSupport")}
-            >
-              <Text style={flowStyles.primarySaveText}>Save</Text>
-            </Pressable>
-          </View>
+              <Pressable style={flowStyles.trackingEntryBtn} onPress={() => onOpenUpdateData("shgTracking")}>
+                <Text style={flowStyles.trackingEntryBtnText}>Tracking</Text>
+              </Pressable>
+            </View>
 
-          <Pressable style={flowStyles.statusBackBtn} onPress={onOpenShgMember}>
+            <View style={flowStyles.statusFooterCard}>
+              <Pressable
+                style={flowStyles.primarySaveBtn}
+                onPress={() => onOpenUpdateData("technicalSupport")}
+              >
+                <Text style={flowStyles.primarySaveText}>Save</Text>
+              </Pressable>
+            </View>
+
+            <Pressable style={flowStyles.statusBackBtn} onPress={onOpenShgMember}>
             <Text style={flowStyles.statusBackBtnText}>Back to Dashboard</Text>
           </Pressable>
         </View>
       </View>
-    );
-  }
+      );
+    }
+
+    if (homeView === "shgTracking") {
+      return (
+        <View style={pageStyles.screen}>
+          <View style={pageStyles.frame}>
+            <View style={flowStyles.headerCard}>
+              <Text style={flowStyles.headerLine}>SHG Member Name: {selectedMemberName}</Text>
+              <Text style={flowStyles.headerLine}>SHG Name: {selectedShgName}</Text>
+            </View>
+
+            <View style={flowStyles.trackingCard}>
+              <Text style={flowStyles.trackingTitle}>SHG Tracking Under CRP</Text>
+              <Text style={flowStyles.trackingHint}>
+                Enable location, capture/upload live image, upload video, add remarks, then save.
+                Attendance counts only when assigned SHG geolocation matches.
+              </Text>
+              <View style={flowStyles.trackingActionRow}>
+                <Pressable style={flowStyles.secondaryTrackBtn} onPress={() => checkRadiusDistance(false)}>
+                  <Text style={flowStyles.secondaryTrackBtnText}>
+                    {isDistanceLoading ? "Checking..." : "Enable / Match Geo"}
+                  </Text>
+                </Pressable>
+                <Pressable style={flowStyles.secondaryTrackBtn} onPress={() => handleUploadImage("camera")}>
+                  <Text style={flowStyles.secondaryTrackBtnText}>Camera Image</Text>
+                </Pressable>
+              </View>
+              <View style={flowStyles.trackingActionRow}>
+                <Pressable style={flowStyles.secondaryTrackBtn} onPress={() => handleUploadImage("library")}>
+                  <Text style={flowStyles.secondaryTrackBtnText}>Upload Image</Text>
+                </Pressable>
+                <Pressable style={flowStyles.secondaryTrackBtn} onPress={handleUploadVideo}>
+                  <Text style={flowStyles.secondaryTrackBtnText}>Upload Video</Text>
+                </Pressable>
+              </View>
+              <Text style={flowStyles.mediaMetaText}>Image: {uploadedImageName || "Pending"}</Text>
+              <Text style={flowStyles.mediaMetaText}>Video: {uploadedVideoName || "Pending"}</Text>
+              <Text style={flowStyles.mediaMetaText}>
+                Geo Status: {locationPromptRequired ? "Location off" : distanceToMember === null ? "Not checked" : `${distanceToMember}m`}
+              </Text>
+              <TextInput
+                style={flowStyles.remarksInput}
+                value={trackingRemarks}
+                onChangeText={setTrackingRemarks}
+                placeholder="Add remarks"
+                multiline
+              />
+            </View>
+
+            <View style={flowStyles.footerRow}>
+              <View
+                style={[
+                  flowStyles.geoDot,
+                  geoStatusVariant === "green"
+                    ? flowStyles.geoDotGreen
+                    : geoStatusVariant === "red"
+                      ? flowStyles.geoDotRed
+                      : flowStyles.geoDotIdle
+                ]}
+              />
+              <Pressable
+                style={flowStyles.primarySaveBtn}
+                onPress={() => handleSaveTrackedStatus("technicalSupport")}
+              >
+                <Text style={flowStyles.primarySaveText}>Save</Text>
+              </Pressable>
+            </View>
+
+            <Pressable style={flowStyles.statusBackBtn} onPress={() => onOpenUpdateData(currentStatusView)}>
+              <Text style={flowStyles.statusBackBtnText}>Back</Text>
+            </Pressable>
+          </View>
+        </View>
+      );
+    }
 
   if (homeView === "lhActivityFarm") {
-    const activityNameOptions = [];
-    const unitAreaOptions = ["Bigha", "Acre", "Hectare"];
-    const typeOptions = ["Kharif", "Rabi", "Perennial"];
-    const seasonOptions = ["Seasonal", "Summer", "Winter", "Rainy"];
-    const landOptions = ["Plain", "Low Land", "Tila"];
-    const productionOptions = ["Crop", "Milk", "Craft", "Processed Food"];
-    const productionUnitOptions = ["KG", "Quintal", "Litre", "Unit"];
+    const activityNameOptions = activityTypes.map((item) => item.name).filter(Boolean);
+    const unitAreaOptions = FARM_UNIT_AREA_OPTIONS;
+    const typeOptions = FARM_TYPE_OPTIONS;
+    const seasonOptions = FARM_SEASON_OPTIONS;
+    const landOptions = FARM_LAND_OPTIONS;
+    const productionOptions = subCategories.map((item) => item.name).filter(Boolean);
+    const productionUnitOptions = FARM_PRODUCTION_UNIT_OPTIONS;
 
-    return (
-      <View style={pageStyles.screen}>
-        <ScrollView showsVerticalScrollIndicator={false}>
-          <View style={[pageStyles.frame, apStyles.frame]}>
-            <View style={apStyles.titleWrap}>
-              <Text style={apStyles.title}>Activity Profile</Text>
-            </View>
-            <Text style={apStyles.sectionType}>Farm</Text>
-
-            <View style={apStyles.row}>
-              <View style={apStyles.leftRow}>
-                <Text style={apStyles.label}>Name of the Activity:</Text>
-                <CycleDropdown
-                  value={activityProfile.activityName}
-                  options={activityNameOptions}
-                  style={apStyles.dropdown}
-                  onChange={(value) =>
-                    setActivityProfile((prev) => ({ ...prev, activityName: value }))
-                  }
-                />
+      return (
+        <View style={pageStyles.screen}>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <View style={[pageStyles.frame, apStyles.frame]}>
+              <View style={apStyles.heroCard}>
+                <View style={apStyles.titleWrap}>
+                  <Text style={apStyles.title}>Activity Profile</Text>
+                </View>
+                <Text style={apStyles.sectionType}>{activityType || "Farm"}</Text>
+                <Text style={apStyles.sectionHint}>
+                  Fill the selected farm-based activity details below.
+                </Text>
               </View>
-            </View>
 
-            <View style={apStyles.row}>
-              <View style={apStyles.leftRow}>
-                <Text style={apStyles.label}>Quantum of Area:</Text>
-                <TextInput
-                  style={apStyles.input}
-                  value={activityProfile.areaQuantity}
-                  onChangeText={(text) =>
-                    setActivityProfile((prev) => ({
-                      ...prev,
-                      areaQuantity: text.replace(/[^\d.]/g, "")
-                    }))
-                  }
-                  keyboardType="numeric"
-                  placeholder="Type"
-                  placeholderTextColor="#64748b"
-                />
+              <View style={apStyles.sectionCard}>
+                <View style={apStyles.fieldBlock}>
+                  <Text style={apStyles.label}>Name of the Activity</Text>
+                  <CycleDropdown
+                    value={activityProfile.activityName}
+                    options={activityNameOptions}
+                    style={apStyles.dropdown}
+                    onChange={(value) =>
+                      setActivityProfile((prev) => ({ ...prev, activityName: value }))
+                    }
+                  />
+                </View>
+
+                <View style={apStyles.fieldBlock}>
+                  <Text style={apStyles.label}>Quantum of Area</Text>
+                  <TextInput
+                    style={apStyles.input}
+                    value={activityProfile.areaQuantity}
+                    onChangeText={(text) =>
+                      setActivityProfile((prev) => ({
+                        ...prev,
+                        areaQuantity: text.replace(/[^\d.]/g, "")
+                      }))
+                    }
+                    keyboardType="numeric"
+                    placeholder="Enter number"
+                    placeholderTextColor="#64748b"
+                  />
+                </View>
+
+                <View style={apStyles.fieldBlock}>
+                  <Text style={apStyles.label}>Unit of Area</Text>
+                  <CycleDropdown
+                    value={activityProfile.areaUnit}
+                    options={unitAreaOptions}
+                    style={apStyles.dropdown}
+                    onChange={(value) => setActivityProfile((prev) => ({ ...prev, areaUnit: value }))}
+                  />
+                </View>
+
+                <View style={apStyles.fieldBlock}>
+                  <Text style={apStyles.label}>Type of Activity</Text>
+                  <CycleDropdown
+                    value={activityProfile.activityMode}
+                    options={typeOptions}
+                    style={apStyles.dropdown}
+                    onChange={(value) =>
+                      setActivityProfile((prev) => ({ ...prev, activityMode: value }))
+                    }
+                  />
+                </View>
+
+                <View style={apStyles.fieldBlock}>
+                  <Text style={apStyles.label}>If Seasonal</Text>
+                  <CycleDropdown
+                    value={activityProfile.seasonality}
+                    options={seasonOptions}
+                    style={apStyles.dropdown}
+                    onChange={(value) =>
+                      setActivityProfile((prev) => ({ ...prev, seasonality: value }))
+                    }
+                  />
+                </View>
+
+                <View style={apStyles.fieldBlock}>
+                  <Text style={apStyles.label}>If Perennial</Text>
+                  <TextInput
+                    style={apStyles.input}
+                    value={activityProfile.period}
+                    onChangeText={(text) =>
+                      setActivityProfile((prev) => ({
+                        ...prev,
+                        period: text.replace(/\D/g, "")
+                      }))
+                    }
+                    keyboardType="numeric"
+                    placeholder="Enter value"
+                    placeholderTextColor="#64748b"
+                  />
+                </View>
+
+                <View style={apStyles.fieldBlock}>
+                  <Text style={apStyles.label}>Type of Land</Text>
+                  <CycleDropdown
+                    value={activityProfile.landType}
+                    options={landOptions}
+                    style={apStyles.dropdown}
+                    onChange={(value) => setActivityProfile((prev) => ({ ...prev, landType: value }))}
+                  />
+                </View>
               </View>
-            </View>
 
-            <View style={apStyles.row}>
-              <View style={apStyles.leftRow}>
-                <Text style={apStyles.label}>Unit of Area:</Text>
-                <CycleDropdown
-                  value={activityProfile.areaUnit}
-                  options={unitAreaOptions}
-                  style={apStyles.dropdown}
-                  onChange={(value) => setActivityProfile((prev) => ({ ...prev, areaUnit: value }))}
-                />
-              </View>
-            </View>
-
-            <View style={apStyles.row}>
-              <View style={apStyles.leftRow}>
-                <Text style={apStyles.label}>Type of Activity:</Text>
-                <CycleDropdown
-                  value={activityProfile.activityMode}
-                  options={typeOptions}
-                  style={apStyles.dropdown}
-                  onChange={(value) =>
-                    setActivityProfile((prev) => ({ ...prev, activityMode: value }))
-                  }
-                />
-              </View>
-            </View>
-
-            <View style={apStyles.row}>
-              <View style={apStyles.leftRow}>
-                <Text style={apStyles.label}>Type of Seasonal:</Text>
-                <CycleDropdown
-                  value={activityProfile.seasonality}
-                  options={seasonOptions}
-                  style={apStyles.dropdown}
-                  onChange={(value) =>
-                    setActivityProfile((prev) => ({ ...prev, seasonality: value }))
-                  }
-                />
-              </View>
-            </View>
-
-            <View style={apStyles.row}>
-              <View style={apStyles.leftRow}>
-                <Text style={apStyles.label}>If Perennial:</Text>
-                <TextInput
-                  style={apStyles.input}
-                  value={activityProfile.period}
-                  onChangeText={(text) =>
-                    setActivityProfile((prev) => ({
-                      ...prev,
-                      period: text.replace(/\D/g, "")
-                    }))
-                  }
-                  keyboardType="numeric"
-                  placeholder="Type years"
-                  placeholderTextColor="#64748b"
-                />
-              </View>
-            </View>
-
-            <View style={apStyles.row}>
-              <View style={apStyles.leftRow}>
-                <Text style={apStyles.label}>Type of Land:</Text>
-                <CycleDropdown
-                  value={activityProfile.landType}
-                  options={landOptions}
-                  style={apStyles.dropdown}
-                  onChange={(value) => setActivityProfile((prev) => ({ ...prev, landType: value }))}
-                />
-              </View>
-            </View>
-
-            <View style={apStyles.actionRow}>
-              <Pressable
-                style={apStyles.actionBtn}
-                onPress={() => {
+              <View style={apStyles.actionRow}>
+                <Pressable
+                  style={apStyles.actionBtn}
+                  onPress={() => {
                   handleProfileSave("Activity profile");
                   onOpenUpdateData("lhStatusFarm");
                 }}
@@ -1572,56 +1969,52 @@ export default function DashboardHomeTab({
                 style={apStyles.actionBtn}
                 onPress={() => Alert.alert("Edit", "Modify values and press Save to proceed.")}
               >
-                <Text style={apStyles.actionBtnText}>Edit</Text>
-              </Pressable>
-            </View>
+                  <Text style={apStyles.actionBtnText}>Edit</Text>
+                </Pressable>
+              </View>
 
-            <View style={apStyles.row}>
-              <View style={apStyles.leftRow}>
-                <Text style={apStyles.label}>Name of the production:</Text>
-                <CycleDropdown
-                  value={activityProfile.productionName}
-                  options={productionOptions}
+              <View style={apStyles.sectionCard}>
+                <View style={apStyles.fieldBlock}>
+                  <Text style={apStyles.label}>Name of the Production</Text>
+                  <CycleDropdown
+                    value={activityProfile.productionName}
+                    options={productionOptions}
                   style={apStyles.dropdown}
                   onChange={(value) =>
-                    setActivityProfile((prev) => ({ ...prev, productionName: value }))
-                  }
-                />
-              </View>
-            </View>
+                      setActivityProfile((prev) => ({ ...prev, productionName: value }))
+                    }
+                  />
+                </View>
 
-            <View style={apStyles.row}>
-              <View style={apStyles.leftRow}>
-                <Text style={apStyles.label}>Production Quantity:</Text>
-                <TextInput
-                  style={apStyles.input}
-                  value={activityProfile.productionQty}
+                <View style={apStyles.fieldBlock}>
+                  <Text style={apStyles.label}>Production Quantity</Text>
+                  <TextInput
+                    style={apStyles.input}
+                    value={activityProfile.productionQty}
                   onChangeText={(text) =>
                     setActivityProfile((prev) => ({
                       ...prev,
-                      productionQty: text.replace(/[^\d.]/g, "")
-                    }))
-                  }
-                  keyboardType="numeric"
-                  placeholder="Type"
-                  placeholderTextColor="#64748b"
-                />
-              </View>
-            </View>
+                        productionQty: text.replace(/[^\d.]/g, "")
+                      }))
+                    }
+                    keyboardType="numeric"
+                    placeholder="Enter number"
+                    placeholderTextColor="#64748b"
+                  />
+                </View>
 
-            <View style={apStyles.row}>
-              <View style={apStyles.leftRow}>
-                <Text style={apStyles.label}>Production Unit:</Text>
-                <CycleDropdown
-                  value={activityProfile.productionUnit}
-                  options={productionUnitOptions}
+                <View style={apStyles.fieldBlock}>
+                  <Text style={apStyles.label}>Production Unit</Text>
+                  <CycleDropdown
+                    value={activityProfile.productionUnit}
+                    options={productionUnitOptions}
                   style={apStyles.dropdown}
                   onChange={(value) =>
-                    setActivityProfile((prev) => ({ ...prev, productionUnit: value }))
-                  }
-                />
+                      setActivityProfile((prev) => ({ ...prev, productionUnit: value }))
+                    }
+                  />
+                </View>
               </View>
-            </View>
 
             <Pressable style={wrStyles.backBtn} onPress={() => onOpenUpdateData(currentStatusView)}>
               <Text style={wrStyles.backBtnText}>Back to Status</Text>
@@ -2390,11 +2783,20 @@ export default function DashboardHomeTab({
               </Text>
             </View>
 
-            <View style={lhGuideStyles.footerRow}>
-              <View style={[lhGuideStyles.geoDot, lhGuideStyles.geoDotRed]} />
-              <Pressable style={lhGuideStyles.saveBtn} onPress={handleLhCboGuideSaveAndNext}>
-                <Text style={lhGuideStyles.saveBtnText}>Save & Next</Text>
-              </Pressable>
+              <View style={lhGuideStyles.footerRow}>
+                <View
+                  style={[
+                    lhGuideStyles.geoDot,
+                    geoStatusVariant === "green"
+                      ? lhGuideStyles.geoDotGreen
+                      : geoStatusVariant === "red"
+                        ? lhGuideStyles.geoDotRed
+                        : lhGuideStyles.geoDotIdle
+                  ]}
+                />
+                <Pressable style={lhGuideStyles.saveBtn} onPress={handleLhCboGuideSaveAndNext}>
+                  <Text style={lhGuideStyles.saveBtnText}>Save & Next</Text>
+                </Pressable>
             </View>
           </View>
 
@@ -2489,7 +2891,11 @@ export default function DashboardHomeTab({
               <View
                 style={[
                   lhcboStatusStyles.geoDot,
-                  isWithin50Meters ? lhcboStatusStyles.geoDotGreen : lhcboStatusStyles.geoDotRed
+                  geoStatusVariant === "green"
+                    ? lhcboStatusStyles.geoDotGreen
+                    : geoStatusVariant === "red"
+                      ? lhcboStatusStyles.geoDotRed
+                      : lhcboStatusStyles.geoDotIdle
                 ]}
               />
               <Pressable style={lhcboStatusStyles.saveBtn} onPress={() => onOpenUpdateData("technicalSupport")}>
@@ -2507,8 +2913,8 @@ export default function DashboardHomeTab({
       <View style={pageStyles.screen}>
         <View style={[pageStyles.frame, tsCardStyles.frame]}>
           <View style={tsCardStyles.headerCard}>
-            <Text style={tsCardStyles.headerLine}>SHG Member Name: {memberName || "xxxxxxxxxx xxxx"}</Text>
-            <Text style={tsCardStyles.headerLine}>SHG Name: {shgName || "xxxxxxxxxx SHG"}</Text>
+            <Text style={tsCardStyles.headerLine}>SHG Member Name: {selectedMemberName}</Text>
+            <Text style={tsCardStyles.headerLine}>SHG Name: {selectedShgName}</Text>
           </View>
 
           <Pressable
@@ -2556,7 +2962,11 @@ export default function DashboardHomeTab({
             <View
               style={[
                 tsCardStyles.geoDot,
-                isWithin50Meters ? tsCardStyles.geoDotGreen : tsCardStyles.geoDotRed
+                geoStatusVariant === "green"
+                  ? tsCardStyles.geoDotGreen
+                  : geoStatusVariant === "red"
+                    ? tsCardStyles.geoDotRed
+                    : tsCardStyles.geoDotIdle
               ]}
             />
             <Pressable
@@ -3162,32 +3572,7 @@ export default function DashboardHomeTab({
           ) : null}
         </View>
 
-        <Modal
-          visible={showDashboardAlerts}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setShowDashboardAlerts(false)}
-        >
-          <View pointerEvents="box-none" style={pageStyles.alertPopupOverlay}>
-            <Pressable
-              style={pageStyles.alertPopupCard}
-              onPress={() => setShowDashboardAlerts(false)}
-            >
-              <View style={pageStyles.dashboardAlertHeader}>
-                <View style={pageStyles.dashboardAlertIconWrap}>
-                  <Text style={pageStyles.dashboardAlertIcon}>!</Text>
-                </View>
-                <View style={pageStyles.dashboardAlertCopy}>
-                  <Text style={pageStyles.dashboardAlertTitle}>Notifications</Text>
-                  <Text style={pageStyles.dashboardAlertHint}>{firstDashboardNotification}</Text>
-                </View>
-                <View style={pageStyles.dashboardAlertBadge}>
-                  <Text style={pageStyles.dashboardAlertBadgeText}>{dashboardAlertCount}</Text>
-                </View>
-              </View>
-            </Pressable>
-          </View>
-        </Modal>
+        {renderAlertPopup()}
 
         <View style={pageStyles.dashboardCard}>
           <Text style={pageStyles.dashboardTitle}>Dashboard</Text>
@@ -3240,13 +3625,13 @@ export default function DashboardHomeTab({
             </Pressable>
           </View>
 
-          <View style={pageStyles.dashboardInlineAlert}>
-            <View style={pageStyles.dashboardAlertDot} />
-            <Text style={pageStyles.dashboardInlineAlertText}>
-              Alerts of Pending & Upcoming Works-
-              {alerts.length > 0 ? ` ${alerts[0].message}` : " No pending alerts"}
-            </Text>
-          </View>
+            <View style={pageStyles.dashboardInlineAlert}>
+              <View style={pageStyles.dashboardAlertDot} />
+              <Text style={pageStyles.dashboardInlineAlertText}>
+                Alerts of Pending & Upcoming Works-
+              {` ${dashboardInlineAlertMessage}`}
+              </Text>
+            </View>
 
           <View style={pageStyles.dashboardActivityPanel}>
             <Text style={pageStyles.dashboardActivityTitle}>Different Activities of the Concern CRP</Text>

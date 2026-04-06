@@ -20,28 +20,15 @@ export const GEOFENCE_SETTINGS = {
 
 export const LANGUAGE_OPTIONS = [
   { name: "English", nativeName: "English", code: "en" },
-  { name: "Hindi", nativeName: "हिन्दी", code: "hi" },
-  { name: "Bengali", nativeName: "বাংলা", code: "bn" },
-  { name: "Assamese", nativeName: "অসমীয়া", code: "as" },
-  { name: "Gujarati", nativeName: "ગુજરાતી", code: "gu" },
-  { name: "Kannada", nativeName: "ಕನ್ನಡ", code: "kn" },
-  { name: "Kashmiri", nativeName: "कॉशुर", code: "ks" },
-  { name: "Konkani", nativeName: "कोंकणी", code: "gom" },
-  { name: "Malayalam", nativeName: "മലയാളം", code: "ml" },
-  { name: "Manipuri", nativeName: "মৈতৈলোন্", code: "mni-Mtei" },
-  { name: "Marathi", nativeName: "मराठी", code: "mr" },
-  { name: "Nepali", nativeName: "नेपाली", code: "ne" },
-  { name: "Odia", nativeName: "ଓଡ଼ିଆ", code: "or" },
-  { name: "Punjabi", nativeName: "ਪੰਜਾਬੀ", code: "pa" },
-  { name: "Sanskrit", nativeName: "संस्कृतम्", code: "sa" },
-  { name: "Santali", nativeName: "ᱥᱟᱱᱛᱟᱲᱤ", code: "sat" },
-  { name: "Sindhi", nativeName: "सिन्धी", code: "sd" },
+  { name: "Hindi", nativeName: "हिंदी", code: "hi" },
   { name: "Tamil", nativeName: "தமிழ்", code: "ta" },
   { name: "Telugu", nativeName: "తెలుగు", code: "te" },
-  { name: "Urdu", nativeName: "اردو", code: "ur" },
-  { name: "Bodo", nativeName: "बड़ो", code: "brx" },
-  { name: "Dogri", nativeName: "डोगरी", code: "doi" },
-  { name: "Maithili", nativeName: "मैथिली", code: "mai" }
+  { name: "Bengali", nativeName: "বাংলা", code: "bn" },
+  { name: "Marathi", nativeName: "मराठी", code: "mr" },
+  { name: "Gujarati", nativeName: "ગુજરાતી", code: "gu" },
+  { name: "Kannada", nativeName: "ಕನ್ನಡ", code: "kn" },
+  { name: "Malayalam", nativeName: "മലയാളം", code: "ml" },
+  { name: "Punjabi", nativeName: "ਪੰਜਾਬੀ", code: "pa" }
 ];
 export const LANGUAGES = LANGUAGE_OPTIONS.map((item) => item.name);
 export const BLOCKS = [];

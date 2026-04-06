@@ -325,10 +325,13 @@ export const pageStyles = StyleSheet.create({
     lineHeight: 18
   },
   alertPopupOverlay: {
-    flex: 1,
+    position: "absolute",
+    top: 92,
+    left: 12,
+    right: 12,
+    zIndex: 50,
     justifyContent: "flex-start",
-    paddingTop: 92,
-    paddingHorizontal: 12
+    alignItems: "stretch"
   },
   alertPopupCard: {
     borderWidth: 1,
@@ -387,13 +390,36 @@ export const pageStyles = StyleSheet.create({
     paddingHorizontal: 6
   },
   dashboardAlertBadgeText: {
-    color: "#ffffff",
-    fontSize: 12,
-    fontWeight: "900"
-  },
-  actionBtnMuted: {
-    flex: 1,
-    backgroundColor: "#e5e7eb",
+      color: "#ffffff",
+      fontSize: 12,
+      fontWeight: "900"
+    },
+    dashboardAlertList: {
+      marginTop: 10,
+      gap: 8
+    },
+    dashboardAlertListRow: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: 8
+    },
+    dashboardAlertListDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: "#f59e0b",
+      marginTop: 5
+    },
+    dashboardAlertListText: {
+      flex: 1,
+      color: "#7c2d12",
+      fontSize: 12,
+      fontWeight: "700",
+      lineHeight: 18
+    },
+    actionBtnMuted: {
+      flex: 1,
+      backgroundColor: "#e5e7eb",
     borderWidth: 1,
     borderColor: "#cbd5e1",
     borderRadius: 9,
@@ -979,93 +1005,242 @@ export const smStyles = StyleSheet.create({
 });
 
 export const flowStyles = StyleSheet.create({
-  headerCard: {
-    backgroundColor: "#6b7280",
+  statusHeroCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
     borderWidth: 1,
-    borderColor: "#4b5563",
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    borderColor: "#dbe7f3",
+    backgroundColor: "#0f2f50",
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    shadowColor: "#0f172a",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 4
+  },
+  statusHeroAccent: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "#f59e0b",
+    borderWidth: 3,
+    borderColor: "#fde68a"
+  },
+  statusHeroCopy: {
+    flex: 1,
     gap: 3
   },
-  headerLine: {
+  statusHeroEyebrow: {
+    color: "#bfdbfe",
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+    textTransform: "uppercase"
+  },
+  statusHeroTitle: {
     color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "900"
+  },
+  statusHeroSubtitle: {
+    color: "#dbeafe",
     fontSize: 12,
     fontWeight: "700"
   },
+  statusTitleWrap: {
+    marginTop: 14,
+    marginBottom: 8,
+    gap: 4
+  },
   statusTitle: {
-    color: "#111827",
-    fontSize: 13,
-    fontWeight: "800"
+    color: "#0f172a",
+    fontSize: 15,
+    fontWeight: "900"
+  },
+  statusHint: {
+    color: "#64748b",
+    fontSize: 12,
+    lineHeight: 18
+  },
+  moduleStack: {
+    gap: 10
   },
   profileButton: {
-    backgroundColor: "#3b67b8",
+    backgroundColor: "#3157b7",
     borderWidth: 1,
-    borderColor: "#3159a5",
-    borderRadius: 8,
+    borderColor: "#27479b",
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 12,
-    marginTop: 6
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    shadowColor: "#1d4ed8",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.14,
+    shadowRadius: 8,
+    elevation: 2
   },
   profileButtonText: {
     color: "#ffffff",
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "800"
   },
-  footerRow: {
-    flexDirection: "row",
+  trackingEntryBtn: {
+    backgroundColor: "#0f766e",
+    borderWidth: 1,
+    borderColor: "#115e59",
+    borderRadius: 14,
     alignItems: "center",
-    gap: 10,
-    marginTop: 8
+    justifyContent: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    shadowColor: "#0f766e",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.14,
+    shadowRadius: 8,
+    elevation: 2
+  },
+  trackingEntryBtnText: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "800"
+  },
+  statusFooterCard: {
+    marginTop: 14,
+    borderWidth: 1,
+    borderColor: "#dbe7f3",
+    backgroundColor: "#f8fbff",
+    borderRadius: 18,
+    padding: 12,
+    gap: 10
+  },
+  footerRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10
+    },
+  footerStatusText: {
+    flex: 1,
+    color: "#334155",
+    fontSize: 12,
+    fontWeight: "700"
   },
   geoDot: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 1
+      width: 18,
+      height: 18,
+      borderRadius: 9,
+      borderWidth: 1
   },
   geoDotGreen: {
     backgroundColor: "#22c55e",
     borderColor: "#15803d"
+  },
+  geoDotIdle: {
+    backgroundColor: "#94a3b8",
+    borderColor: "#64748b"
   },
   geoDotRed: {
     backgroundColor: "#ef4444",
     borderColor: "#b91c1c"
   },
   primarySaveBtn: {
-    flex: 1,
-    backgroundColor: "#f97316",
-    borderWidth: 1,
-    borderColor: "#c2410c",
-    borderRadius: 6,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 9
-  },
+      width: "100%",
+      backgroundColor: "#f97316",
+      borderWidth: 1,
+      borderColor: "#c2410c",
+      borderRadius: 14,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: 12,
+      shadowColor: "#ea580c",
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.16,
+      shadowRadius: 8,
+      elevation: 2
+    },
   primarySaveText: {
-    color: "#ffffff",
-    fontSize: 12,
-    fontWeight: "800"
-  },
+      color: "#ffffff",
+      fontSize: 14,
+      fontWeight: "800"
+    },
   statusBackBtn: {
-    marginTop: 2,
-    backgroundColor: "#1e40af",
-    borderWidth: 1,
-    borderColor: "#1e3a8a",
-    borderRadius: 6,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 9
-  },
+      marginTop: 12,
+      backgroundColor: "#1e3a8a",
+      borderWidth: 1,
+      borderColor: "#172554",
+      borderRadius: 14,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: 12
+    },
   statusBackBtnText: {
-    color: "#ffffff",
-    fontSize: 12,
-    fontWeight: "800"
-  },
-  formTitle: {
-    color: "#111827",
-    fontSize: 15,
-    fontWeight: "800"
+        color: "#ffffff",
+        fontSize: 13,
+        fontWeight: "800"
+      },
+    trackingCard: {
+      marginTop: 10,
+      borderWidth: 1,
+      borderColor: "#cbd5e1",
+      backgroundColor: "#f8fafc",
+      borderRadius: 10,
+      padding: 10,
+      gap: 8
+    },
+    trackingTitle: {
+      color: "#111827",
+      fontSize: 13,
+      fontWeight: "900"
+    },
+    trackingHint: {
+      color: "#475569",
+      fontSize: 11,
+      lineHeight: 16
+    },
+    trackingActionRow: {
+      flexDirection: "row",
+      gap: 8
+    },
+    secondaryTrackBtn: {
+      flex: 1,
+      backgroundColor: "#dbeafe",
+      borderWidth: 1,
+      borderColor: "#93c5fd",
+      borderRadius: 8,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: 9,
+      paddingHorizontal: 8
+    },
+    secondaryTrackBtnText: {
+      color: "#1d4ed8",
+      fontSize: 11,
+      fontWeight: "800",
+      textAlign: "center"
+    },
+    mediaMetaText: {
+      color: "#334155",
+      fontSize: 11,
+      fontWeight: "700"
+    },
+    remarksInput: {
+      minHeight: 70,
+      borderWidth: 1,
+      borderColor: "#cbd5e1",
+      borderRadius: 8,
+      backgroundColor: "#ffffff",
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+      color: "#111827",
+      textAlignVertical: "top"
+    },
+    formTitle: {
+      color: "#111827",
+      fontSize: 15,
+      fontWeight: "800"
   },
   formRow: {
     flexDirection: "row",
@@ -1091,106 +1266,188 @@ export const flowStyles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700"
   },
+  ddWrap: {
+    width: "100%",
+    position: "relative",
+    zIndex: 40
+  },
   ddBox: {
-    width: 128,
+    width: "100%",
+    minHeight: 42,
     borderWidth: 1,
-    borderColor: "#9ca3af",
-    borderRadius: 4,
+    borderColor: "#d8e3f2",
+    borderRadius: 12,
     backgroundColor: "#ffffff",
-    paddingHorizontal: 8,
-    paddingVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between"
   },
   ddText: {
     color: "#111827",
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "700",
     flex: 1,
-    marginRight: 6
+    marginRight: 10
   },
   ddArrow: {
     color: "#f97316",
     fontSize: 12,
     fontWeight: "900"
+  },
+  ddMenu: {
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: "#d8e3f2",
+    borderRadius: 12,
+    backgroundColor: "#ffffff",
+    overflow: "hidden",
+    maxHeight: 190,
+    boxShadow: "0px 10px 24px rgba(15, 23, 42, 0.12)",
+    elevation: 6,
+    zIndex: 50
+  },
+  ddScroll: {
+    maxHeight: 190
+  },
+  ddOption: {
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eef3fb",
+    backgroundColor: "#ffffff"
+  },
+  ddOptionActive: {
+    backgroundColor: "#edf4ff"
+  },
+  ddOptionText: {
+    color: "#1f2937",
+    fontSize: 12,
+    fontWeight: "600"
+  },
+  ddOptionTextActive: {
+    color: "#1d4ed8"
   }
 });
 
 export const apStyles = StyleSheet.create({
   frame: {
-    borderRadius: 2,
-    borderColor: "#8c8c8c",
-    backgroundColor: "#d7d7d7",
-    padding: 8
+    width: "100%",
+    maxWidth: 640,
+    alignSelf: "center",
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: "#dbe7f3",
+    backgroundColor: "#f7fbff",
+    padding: 16,
+    gap: 14,
+    shadowColor: "#0f172a",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    elevation: 3
+  },
+  heroCard: {
+    gap: 8,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#e2ebf5",
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.92)"
   },
   titleWrap: {
-    alignSelf: "center",
+    alignSelf: "flex-start",
     borderWidth: 1,
-    borderColor: "#555555",
-    backgroundColor: "#e6e6e6",
-    paddingHorizontal: 12,
-    paddingVertical: 4
+    borderColor: "#d7e2ee",
+    backgroundColor: "#ffffff",
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    shadowColor: "#0f172a",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 1
   },
   title: {
-    color: "#1f1f1f",
-    fontSize: 24,
-    fontWeight: "700"
+    color: "#0f172a",
+    fontSize: 21,
+    fontWeight: "900"
   },
   sectionType: {
-    alignSelf: "flex-end",
-    color: "#1f2937",
+    alignSelf: "flex-start",
+    color: "#1d4ed8",
+    fontSize: 12,
+    fontWeight: "900",
+    textTransform: "uppercase",
+    letterSpacing: 0.6
+  },
+  sectionHint: {
+    color: "#64748b",
+    fontSize: 12,
+    lineHeight: 18
+  },
+  sectionCard: {
+    width: "100%",
+    alignSelf: "center",
+    borderWidth: 1,
+    borderColor: "#dbe7f3",
+    backgroundColor: "#ffffff",
+    borderRadius: 18,
+    padding: 14,
+    gap: 14,
+    shadowColor: "#0f172a",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 1
+  },
+  fieldBlock: {
+    width: "100%",
+    gap: 7
+  },
+  label: {
+    color: "#334155",
     fontSize: 12,
     fontWeight: "800"
   },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8
-  },
-  leftRow: {
-    width: "66%",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6
-  },
-  label: {
-    flex: 1,
-    color: "#111827",
-    fontSize: 12,
-    fontWeight: "600"
-  },
   input: {
-    width: 110,
+    width: "100%",
+    minHeight: 48,
     borderWidth: 1,
-    borderColor: "#5f5f5f",
+    borderColor: "#cbd5e1",
+    borderRadius: 12,
     backgroundColor: "#ffffff",
     color: "#111827",
-    fontSize: 11,
-    paddingHorizontal: 6,
-    paddingVertical: 4
+    fontSize: 13,
+    paddingHorizontal: 12,
+    paddingVertical: 12
   },
   dropdown: {
-    width: 110,
-    borderRadius: 0,
-    borderColor: "#5f5f5f",
-    paddingVertical: 4
+    width: "100%",
+    minHeight: 48,
+    borderRadius: 12,
+    borderColor: "#cbd5e1",
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 12,
+    paddingVertical: 12
   },
   actionRow: {
     flexDirection: "row",
-    justifyContent: "center",
-    gap: 24,
-    marginTop: 4
+    gap: 12,
+    marginTop: 2
   },
   actionBtn: {
-    minWidth: 86,
+    flex: 1,
+    minHeight: 48,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#4d7dc9",
     borderWidth: 1,
     borderColor: "#3159a5",
-    borderRadius: 8,
-    paddingVertical: 8,
+    borderRadius: 14,
+    paddingVertical: 12,
     shadowColor: "#1e3a8a",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
@@ -1199,8 +1456,8 @@ export const apStyles = StyleSheet.create({
   },
   actionBtnText: {
     color: "#f8fafc",
-    fontSize: 16,
-    fontWeight: "700"
+    fontSize: 15,
+    fontWeight: "800"
   }
 });
 
@@ -1393,6 +1650,10 @@ export const tsCardStyles = StyleSheet.create({
   geoDotGreen: {
     backgroundColor: "#22c55e",
     borderColor: "#15803d"
+  },
+  geoDotIdle: {
+    backgroundColor: "#94a3b8",
+    borderColor: "#64748b"
   },
   geoDotRed: {
     backgroundColor: "#ef4444",
@@ -1916,6 +2177,10 @@ export const lhcboStyles = StyleSheet.create({
     backgroundColor: "#22c55e",
     borderColor: "#15803d"
   },
+  geoDotIdle: {
+    backgroundColor: "#94a3b8",
+    borderColor: "#64748b"
+  },
   geoDotRed: {
     backgroundColor: "#ef4444",
     borderColor: "#b91c1c"
@@ -2051,6 +2316,10 @@ export const lhGuideStyles = StyleSheet.create({
   geoDotGreen: {
     backgroundColor: "#22c55e",
     borderColor: "#15803d"
+  },
+  geoDotIdle: {
+    backgroundColor: "#94a3b8",
+    borderColor: "#64748b"
   },
   geoDotRed: {
     backgroundColor: "#ef4444",
