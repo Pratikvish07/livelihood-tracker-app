@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Alert, SafeAreaView, ScrollView, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, SafeAreaView, ScrollView, Text, View } from "react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useDispatch, useSelector } from "react-redux";
 import BottomNav from "../components/BottomNav";
+import TrlmHeader from "../components/TrlmHeader";
 import DashboardHomeTab from "../screens/tabs/DashboardHomeTab.js";
 import ProfileTab from "../screens/tabs/ProfileTab";
 import LanguageScreen from "../screens/LanguageScreen";
@@ -20,6 +21,7 @@ import {
   isLokosValid,
   isPasswordStrong
 } from "../utils/appCalculations";
+import { getCurrentLocation } from "../utils/geofence";
 import {
   clearAuthToken,
   fetchGpsByBlock,
@@ -41,6 +43,8 @@ import {
 
 const USER_STORAGE_KEY = "trlmUserProfile";
 const USER_DIRECTORY_KEY = "trlmUserProfilesByIdentity";
+const APP_NAV_STORAGE_KEY = "trlmAppNavState";
+const CHECKIN_STORAGE_KEY = "trlmCheckInState";
 const STATIC_HONORARIUM_PER_VISIT = 150;
 const STATIC_LAST_HONORARIUM_RECEIVED = 1200;
 const STATIC_DASHBOARD_FALLBACK = {
@@ -84,11 +88,63 @@ const EMPTY_SESSION_INFO = {
   logoutAt: "",
   elapsedSeconds: 0
 };
+const EMPTY_CHECKIN_INFO = {
+  isCheckedIn: false,
+  checkInAt: "",
+  checkOutAt: "",
+  currentDate: "",
+  latitude: null,
+  longitude: null,
+  accuracy: 0,
+  geoEnabled: false
+};
+
+function getTodayIsoDate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function formatFriendlyDate(value) {
+  if (!value) {
+    return "-";
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return parsed.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric"
+  });
+}
+
+function formatFriendlyTime(value) {
+  if (!value) {
+    return "-";
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return parsed.toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true
+  });
+}
 
 export default function AppRouter() {
   const [step, setStep] = useState("splash");
+  const [postSplashStep, setPostSplashStep] = useState("attendanceGate");
   const [activeTab, setActiveTab] = useState("Home");
   const [homeView, setHomeView] = useState("dashboard");
+  const [appHydrated, setAppHydrated] = useState(false);
+  const [geoLoading, setGeoLoading] = useState(false);
 
   const [loginForm, setLoginForm] = useState({
     idType: "",
@@ -139,6 +195,11 @@ export default function AppRouter() {
   const [alerts, setAlerts] = useState([]);
   const [assignedShgMembers, setAssignedShgMembers] = useState(ASSIGNED_SHG_MEMBERS);
   const [sessionInfo, setSessionInfo] = useState(EMPTY_SESSION_INFO);
+  const [checkInInfo, setCheckInInfo] = useState({
+    ...EMPTY_CHECKIN_INFO,
+    currentDate: getTodayIsoDate()
+  });
+  const [showPostCheckoutModal, setShowPostCheckoutModal] = useState(false);
   const dispatch = useDispatch();
   const signupStatus = useSelector((state) => state.auth.signupStatus);
   const signupError = useSelector((state) => state.auth.signupError);
@@ -148,10 +209,17 @@ export default function AppRouter() {
   useEffect(() => {
     const loadPreferences = async () => {
       try {
-        const [savedLanguage, savedUserProfile] = await Promise.all([
+        const [savedLanguage, savedUserProfile, savedNavState, savedCheckInState] = await Promise.all([
           readStoredLanguage(),
-          AsyncStorage.getItem(USER_STORAGE_KEY)
+          AsyncStorage.getItem(USER_STORAGE_KEY),
+          AsyncStorage.getItem(APP_NAV_STORAGE_KEY),
+          AsyncStorage.getItem(CHECKIN_STORAGE_KEY)
         ]);
+        const todayIso = getTodayIsoDate();
+        const parsedNavState = savedNavState ? JSON.parse(savedNavState) : null;
+        const parsedCheckInState = savedCheckInState
+          ? JSON.parse(savedCheckInState)
+          : null;
 
         dispatch(setLanguage(savedLanguage || detectBrowserLanguage()));
 
@@ -164,14 +232,98 @@ export default function AppRouter() {
           if (parsedUserProfile?.token) {
             setAuthToken(parsedUserProfile.token);
           }
+          if (parsedUserProfile?.sessionActive && parsedUserProfile?.sessionStartedAt) {
+            const loginTime = new Date(parsedUserProfile.sessionStartedAt).getTime();
+            setSessionInfo({
+              isActive: true,
+              loginAt: parsedUserProfile.sessionStartedAt,
+              logoutAt: "",
+              elapsedSeconds: Math.max(0, Math.floor((Date.now() - loginTime) / 1000))
+            });
+          }
+        }
+
+        if (parsedNavState?.activeTab) {
+          setActiveTab(parsedNavState.activeTab);
+        }
+
+        if (parsedNavState?.homeView) {
+          setHomeView(parsedNavState.homeView);
+        }
+
+        const hasActiveCheckIn =
+          parsedCheckInState?.currentDate === todayIso &&
+          parsedCheckInState?.isCheckedIn &&
+          !parsedCheckInState?.checkOutAt;
+
+        const normalizedCheckInState = hasActiveCheckIn
+          ? parsedCheckInState
+          : {
+              ...EMPTY_CHECKIN_INFO,
+              currentDate: todayIso
+            };
+
+        setCheckInInfo(normalizedCheckInState);
+
+        const savedStep = parsedNavState?.step;
+        if (hasActiveCheckIn) {
+          if (savedStep === "dashboard" && savedUserProfile) {
+            setPostSplashStep("dashboard");
+          } else if (savedStep === "login") {
+            setPostSplashStep("login");
+          } else if (savedStep === "language") {
+            setPostSplashStep("language");
+          } else {
+            setPostSplashStep(savedUserProfile ? "login" : "language");
+          }
+        } else {
+          setPostSplashStep("attendanceGate");
         }
       } catch (error) {
         console.error("Error loading saved app preferences:", error);
+      } finally {
+        setAppHydrated(true);
       }
     };
 
     loadPreferences();
   }, [dispatch]);
+
+  useEffect(() => {
+    if (!appHydrated || step !== "splash") {
+      return undefined;
+    }
+
+    const timer = setTimeout(() => setStep(postSplashStep), 1800);
+    return () => clearTimeout(timer);
+  }, [appHydrated, postSplashStep, step]);
+
+  useEffect(() => {
+    if (!appHydrated) {
+      return;
+    }
+
+    AsyncStorage.setItem(
+      APP_NAV_STORAGE_KEY,
+      JSON.stringify({
+        step: step === "splash" ? postSplashStep : step,
+        activeTab,
+        homeView
+      })
+    ).catch((error) => {
+      console.error("Error saving app navigation state:", error);
+    });
+  }, [activeTab, appHydrated, homeView, postSplashStep, step]);
+
+  useEffect(() => {
+    if (!appHydrated) {
+      return;
+    }
+
+    AsyncStorage.setItem(CHECKIN_STORAGE_KEY, JSON.stringify(checkInInfo)).catch((error) => {
+      console.error("Error saving check-in state:", error);
+    });
+  }, [appHydrated, checkInInfo]);
 
   useEffect(() => {
     if (!sessionInfo.isActive || !sessionInfo.loginAt) {
@@ -248,11 +400,6 @@ export default function AppRouter() {
   });
 
   const [activities, setActivities] = useState([]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setStep("language"), 1800);
-    return () => clearTimeout(timer);
-  }, []);
 
   const t = (text) => translateText(language, text);
   const formatSessionDuration = (totalSeconds) => {
@@ -362,6 +509,20 @@ export default function AppRouter() {
   }, [activities, assignedShgMembers.length]);
 
   const onLogin = async () => {
+    if (
+      !checkInInfo.isCheckedIn ||
+      checkInInfo.checkOutAt ||
+      checkInInfo.currentDate !== getTodayIsoDate()
+    ) {
+      Alert.alert(
+        t("Check In required"),
+        t("Please enable geo location and complete Check In before logging in.")
+      );
+      setPostSplashStep("attendanceGate");
+      setStep("attendanceGate");
+      return;
+    }
+
     if (!loginForm.identity || !loginForm.password) {
       Alert.alert(t("Login error"), t("Please enter Master ID/CRP ID and Password."));
       return;
@@ -484,6 +645,7 @@ export default function AppRouter() {
 
       setActiveTab("Home");
       setHomeView("dashboard");
+      setPostSplashStep("dashboard");
       setStep("dashboard");
     } catch (error) {
       dispatch(setAuthError(error.message || t("Unable to login right now.")));
@@ -639,6 +801,7 @@ export default function AppRouter() {
       setHomeView("dashboard");
       setActiveTab("Home");
       setStep("login");
+      setPostSplashStep("login");
     } catch (error) {
       const errorMessage = error.message || t("Unable to create CRP ID.");
       dispatch(signupFailure(errorMessage));
@@ -747,61 +910,212 @@ export default function AppRouter() {
     setActiveTab("Home");
   };
 
-  const onLogout = () => {
-    Alert.alert(t("Logout"), t("Are you sure you want to logout from this session?"), [
-      {
-        text: t("Cancel"),
-        style: "cancel"
-      },
-      {
-        text: t("Logout"),
-        style: "destructive",
-        onPress: async () => {
-          const logoutAt = new Date().toISOString();
-          const loginTime = sessionInfo.loginAt
-            ? new Date(sessionInfo.loginAt).getTime()
-            : Date.now();
-          const elapsedSeconds = Math.max(
-            0,
-            Math.floor((new Date(logoutAt).getTime() - loginTime) / 1000)
-          );
-          const finalUserProfile = {
-            ...user,
-            sessionStartedAt: sessionInfo.loginAt || "",
-            sessionEndedAt: logoutAt,
-            lastSessionDurationSeconds: elapsedSeconds,
-            lastSessionDurationLabel: formatSessionDuration(elapsedSeconds),
-            sessionActive: false
-          };
-
-          setSessionInfo({
-            isActive: false,
-            loginAt: sessionInfo.loginAt || "",
-            logoutAt,
-            elapsedSeconds
-          });
-          setUser(finalUserProfile);
-
-          clearAuthToken();
-          dispatch(logout());
-          try {
-            await persistUserProfile(finalUserProfile);
-            await AsyncStorage.removeItem(USER_STORAGE_KEY);
-          } catch (error) {
-            console.error("Error clearing user profile:", error);
-          }
-          setStep("login");
-          setHomeView("dashboard");
-          setActiveTab("Home");
-        }
-      }
-    ]);
+  const resolveNextStepAfterCheckIn = () => {
+    if (user?.identity && (sessionInfo.isActive || user?.sessionActive)) {
+      return "dashboard";
+    }
+    return "language";
   };
+
+  const handleEnableGeoLocation = async () => {
+    setGeoLoading(true);
+    try {
+      const currentLocation = await getCurrentLocation();
+      if (!currentLocation) {
+        Alert.alert(
+          t("Location required"),
+          t("Please enable geolocation to continue with Check In.")
+        );
+        return;
+      }
+
+      setCheckInInfo((prev) => ({
+        ...prev,
+        currentDate: getTodayIsoDate(),
+        latitude: currentLocation.latitude,
+        longitude: currentLocation.longitude,
+        accuracy: currentLocation.accuracy || 0,
+        geoEnabled: true
+      }));
+
+      Alert.alert(
+        t("Location enabled"),
+        t("Geo location is enabled. You can proceed with Check In now.")
+      );
+    } catch (error) {
+      Alert.alert(
+        t("Location required"),
+        error?.message || t("Unable to read your current location right now.")
+      );
+    } finally {
+      setGeoLoading(false);
+    }
+  };
+
+  const handleCheckIn = async () => {
+    if (!checkInInfo.geoEnabled) {
+      Alert.alert(
+        t("Check In blocked"),
+        t("Enable geo location before checking in.")
+      );
+      return;
+    }
+
+    const checkInAt = new Date().toISOString();
+    const nextStep = resolveNextStepAfterCheckIn();
+
+    setCheckInInfo((prev) => ({
+      ...prev,
+      isCheckedIn: true,
+      checkInAt,
+      checkOutAt: "",
+      currentDate: getTodayIsoDate()
+    }));
+
+    setPostSplashStep(nextStep);
+    setStep(nextStep);
+  };
+
+  const handleCheckOut = ({ onComplete } = {}) => {
+    const checkoutAt = new Date().toISOString();
+
+    setCheckInInfo((prev) => ({
+      ...EMPTY_CHECKIN_INFO,
+      currentDate: getTodayIsoDate(),
+      checkInAt: prev.checkInAt,
+      checkOutAt: checkoutAt
+    }));
+    setShowPostCheckoutModal(true);
+
+    if (typeof onComplete === "function") {
+      onComplete(checkoutAt);
+    } else {
+      setPostSplashStep("login");
+      setStep("login");
+      setShowPostCheckoutModal(false);
+    }
+  };
+
+  const completeLogout = async (checkoutAtOverride = "") => {
+    const logoutAt = checkoutAtOverride || new Date().toISOString();
+    const loginTime = sessionInfo.loginAt
+      ? new Date(sessionInfo.loginAt).getTime()
+      : Date.now();
+    const elapsedSeconds = Math.max(
+      0,
+      Math.floor((new Date(logoutAt).getTime() - loginTime) / 1000)
+    );
+    const finalUserProfile = {
+      ...user,
+      sessionStartedAt: sessionInfo.loginAt || "",
+      sessionEndedAt: logoutAt,
+      lastSessionDurationSeconds: elapsedSeconds,
+      lastSessionDurationLabel: formatSessionDuration(elapsedSeconds),
+      sessionActive: false
+    };
+
+    setSessionInfo({
+      isActive: false,
+      loginAt: sessionInfo.loginAt || "",
+      logoutAt,
+      elapsedSeconds
+    });
+    setUser(finalUserProfile);
+
+    clearAuthToken();
+    dispatch(logout());
+    try {
+      await persistUserProfile(finalUserProfile);
+      await AsyncStorage.multiRemove([USER_STORAGE_KEY, APP_NAV_STORAGE_KEY]);
+    } catch (error) {
+      console.error("Error clearing user profile:", error);
+    }
+    setStep("login");
+    setPostSplashStep("login");
+    setHomeView("dashboard");
+    setActiveTab("Home");
+    setShowPostCheckoutModal(false);
+  };
+
+  const onLogout = () => {
+    const needsCheckout = checkInInfo.isCheckedIn && !checkInInfo.checkOutAt;
+
+    if (needsCheckout) {
+      handleCheckOut({
+        onComplete: async (checkoutAt) => {
+          await completeLogout(checkoutAt);
+        }
+      });
+      return;
+    }
+
+    completeLogout();
+  };
+
+  const todayLabel = formatFriendlyDate(checkInInfo.currentDate || getTodayIsoDate());
+  const checkInStatusLabel = checkInInfo.isCheckedIn && !checkInInfo.checkOutAt
+    ? "Checked In"
+    : "Pending Check In";
+  const checkInBadgeTone = checkInInfo.isCheckedIn && !checkInInfo.checkOutAt
+    ? styles.sessionStatusBadgeSuccess
+    : styles.sessionStatusBadgePending;
 
   return (
     <I18nProvider language={language} onChangeLanguage={handleSetLanguage}>
       <SafeAreaView style={styles.safe}>
       {step === "splash" ? <SplashScreen /> : null}
+
+      {step === "attendanceGate" ? (
+        <View style={styles.sessionGateScreen}>
+          <View style={styles.sessionGateHero}>
+            <Text style={styles.sessionGateEyebrow}>Daily Attendance</Text>
+            <Text style={styles.sessionGateTitle}>Check In / Check Out</Text>
+            <Text style={styles.sessionGateHint}>
+              Enable geo location, capture the current date, and then continue into the project flow.
+            </Text>
+          </View>
+
+          <View style={styles.sessionGateCard}>
+            <View style={styles.sessionGateRow}>
+              <Text style={styles.sessionGateLabel}>Current Date</Text>
+              <Text style={styles.sessionGateValue}>{todayLabel}</Text>
+            </View>
+            <View style={styles.sessionGateRow}>
+              <Text style={styles.sessionGateLabel}>Geo Location</Text>
+              <Text style={styles.sessionGateValue}>
+                {checkInInfo.geoEnabled ? "Enabled" : "Required"}
+              </Text>
+            </View>
+            <View style={styles.sessionGateRow}>
+              <Text style={styles.sessionGateLabel}>Attendance Status</Text>
+              <View style={[styles.sessionStatusBadge, checkInBadgeTone]}>
+                <Text style={styles.sessionStatusBadgeText}>{checkInStatusLabel}</Text>
+              </View>
+            </View>
+            <View style={styles.sessionGateRow}>
+              <Text style={styles.sessionGateLabel}>Check In Time</Text>
+              <Text style={styles.sessionGateValue}>{formatFriendlyTime(checkInInfo.checkInAt)}</Text>
+            </View>
+
+            <View style={styles.sessionGateActionRow}>
+              <Pressable
+                style={styles.sessionGateGhostButton}
+                onPress={handleEnableGeoLocation}
+                disabled={geoLoading}
+              >
+                {geoLoading ? (
+                  <ActivityIndicator color="#1d4ed8" />
+                ) : (
+                  <Text style={styles.sessionGateGhostButtonText}>Enable Geo Location</Text>
+                )}
+              </Pressable>
+              <Pressable style={styles.sessionGatePrimaryButton} onPress={handleCheckIn}>
+                <Text style={styles.sessionGatePrimaryButtonText}>Check In</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      ) : null}
 
       {step === "language" ? (
         <LanguageScreen
@@ -835,9 +1149,46 @@ export default function AppRouter() {
 
       {step === "dashboard" ? (
         <View style={styles.dashboardWrap}>
-          <View pointerEvents="none" style={styles.dashboardGlowTop} />
-          <View pointerEvents="none" style={styles.dashboardGlowBottom} />
+          <View style={[styles.dashboardGlowTop, { pointerEvents: "none" }]} />
+          <View style={[styles.dashboardGlowBottom, { pointerEvents: "none" }]} />
           <View style={styles.dashboardContentShell}>
+            <View style={styles.dashboardHeaderWrap}>
+              <TrlmHeader
+                title={activeTab === "Profile" ? "Profile Session" : "Field Session Dashboard"}
+                subtitle={checkInInfo.isCheckedIn && !checkInInfo.checkOutAt
+                  ? `Checked in on ${todayLabel}`
+                  : "Complete Check In to keep the session active."}
+                badge={checkInInfo.isCheckedIn && !checkInInfo.checkOutAt ? "Geo Enabled" : "Geo Required"}
+                onLogout={onLogout}
+                showLogout
+                compact
+              />
+
+              <View style={styles.sessionStripCard}>
+                <View style={styles.sessionStripCopy}>
+                  <Text style={styles.sessionStripTitle}>Attendance Module</Text>
+                  <Text style={styles.sessionStripHint}>
+                    {checkInInfo.isCheckedIn && !checkInInfo.checkOutAt
+                      ? `Checked In on ${todayLabel}`
+                      : "Enable geo location and Check In to continue your field session."}
+                  </Text>
+                </View>
+                <View style={styles.sessionStripActions}>
+                  <View style={[styles.sessionStatusBadge, checkInBadgeTone]}>
+                    <Text style={styles.sessionStatusBadgeText}>{checkInStatusLabel}</Text>
+                  </View>
+                  {checkInInfo.isCheckedIn && !checkInInfo.checkOutAt ? (
+                    <Pressable style={styles.sessionStripButton} onPress={() => handleCheckOut()}>
+                      <Text style={styles.sessionStripButtonText}>Check Out</Text>
+                    </Pressable>
+                  ) : (
+                    <Pressable style={styles.sessionStripButton} onPress={() => setStep("attendanceGate")}>
+                      <Text style={styles.sessionStripButtonText}>Check In</Text>
+                    </Pressable>
+                  )}
+                </View>
+              </View>
+            </View>
             <ScrollView contentContainerStyle={styles.screenPad}>
               {activeTab === "Home" ? (
                 <DashboardHomeTab
@@ -857,6 +1208,9 @@ export default function AppRouter() {
                   activities={activities}
                   homeView={homeView}
                   onBackToDashboard={() => setHomeView("dashboard")}
+                  showPostCheckoutModal={showPostCheckoutModal}
+                  setShowPostCheckoutModal={setShowPostCheckoutModal}
+                  onLogout={onLogout}
                 />
               ) : null}
               {activeTab === "Profile" ? (

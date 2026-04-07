@@ -1,38 +1,14 @@
-# Google Translate Integration ✅ COMPLETE
+# Complete Logout Option After Check Out
+Status: In Progress
 
-## Status: [x] 100% Complete
-
-**Integration Summary:**
-```
-Static locale → Cache → Google Translate → key
-```
-- `translations.js`: Custom i18n + Google Translate fallback ✅
-- Project-wide via I18nProvider ✅  
-- No UI logic changes ✅
-- react-i18next: Installed but unused (custom system preferred)
-
-**Activation:**
-```
-echo EXPO_PUBLIC_GOOGLE_TRANSLATE_API_KEY=your_key > .env
-expo start --clear
-```
-
-**Test:** Telugu - "Select Interface Language" → static, missing keys → Google Translate
-
-### Step 2: [ ] Test Integration
-- Switch to non-en language (e.g., te)
-- Verify static keys unchanged, missing keys fetch from Google Translate
-- Check caching works on repeat
-
-### Step 3: [ ] Environment Setup
-- Add EXPO_PUBLIC_GOOGLE_TRANSLATE_API_KEY to .env
-- expo start --clear
-
-### Step 4: [ ] Verify Project-Wide
-- Test all screens: Splash, Language, Login, Dashboard
-- Confirm no logic changes, performance OK
-
-### Step 5: [ ] Complete
-- Update TODO.md to 100%
-- Remove this task
+## Breakdown from Approved Plan:
+- [x] Step 1: Create src/screens/tabs/PostCheckoutModal.js (already done)
+- [x] Step 2: Edit src/routes/AppRouter.js (already done)
+- [x] Step 3a: Add import for PostCheckoutModal in DashboardHomeTab.js 
+- [x] Step 3b: Locate/confirm showPostCheckoutModal prop usage and fix any bugs
+- [x] Step 3c: Add conditional render of <PostCheckoutModal /> in main dashboard JSX
+- [ ] Step 3d: Test logout button navigates to LoginScreen.js
+- [ ] Step 4: Update src/i18n/locales/en.json (translations if needed)
+- [ ] Step 5: Test full checkout → modal → logout flow (`npx expo start`)
+- [ ] Step 6: attempt_completion once verified
 

@@ -56,7 +56,7 @@ export default function ProfileTab({ user, sessionInfo, onLogout }) {
     : user.lastSessionDurationLabel || formatDuration(user.lastSessionDurationSeconds);
 
   return (
-    <View style={styles.tabContent}>
+    <View style={styles.profileShell}>
       <View style={styles.profileHeroCard}>
         <View style={styles.profileAvatar}>
           <Text style={styles.profileAvatarText}>
@@ -64,6 +64,7 @@ export default function ProfileTab({ user, sessionInfo, onLogout }) {
           </Text>
         </View>
         <View style={styles.profileHeroCopy}>
+          <Text style={styles.profileHeroEyebrow}>Authenticated Session</Text>
           <Text style={styles.profileHeroTitle}>{user.name || "TRLM User"}</Text>
           <Text style={styles.profileHeroSubtitle}>
             {user.identity || "Authenticated field session"}
@@ -75,7 +76,10 @@ export default function ProfileTab({ user, sessionInfo, onLogout }) {
       </View>
 
       <View style={styles.profileInfoCard}>
-        <Text style={styles.cardTitle}>Profile</Text>
+        <View style={styles.profileCardHeader}>
+          <Text style={styles.profileCardTitle}>Profile Details</Text>
+          <Text style={styles.profileCardHint}>Live session and account overview</Text>
+        </View>
         <View style={styles.profileInfoRow}>
           <Text style={styles.profileInfoLabel}>Name</Text>
           <Text style={styles.profileInfoValue}>{user.name || "-"}</Text>
@@ -110,10 +114,12 @@ export default function ProfileTab({ user, sessionInfo, onLogout }) {
       </View>
 
       <View style={styles.profileActionCard}>
-        <Text style={styles.profileActionTitle}>Session Control</Text>
-        <Text style={styles.profileActionHint}>
-          Logout is aligned here for quick access from the profile screen.
-        </Text>
+        <View style={styles.profileActionHeader}>
+          <Text style={styles.profileActionTitle}>Session Control</Text>
+          <Text style={styles.profileActionHint}>
+            Logout is placed here for quick access from the profile screen.
+          </Text>
+        </View>
         <PrimaryButton label="Logout" onPress={onLogout} />
       </View>
     </View>

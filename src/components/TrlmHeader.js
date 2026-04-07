@@ -1,6 +1,5 @@
 import React from "react";
 import { Pressable, Text, View } from "react-native";
-import { useI18n } from "../i18n/I18nProvider";
 import styles from "../styles/appStyles";
 
 export default function TrlmHeader({
@@ -11,8 +10,6 @@ export default function TrlmHeader({
   showLogout = false,
   compact = false
 }) {
-  const { t } = useI18n();
-
   return (
     <View style={[styles.trlmHeaderCard, compact && styles.trlmHeaderCardCompact]}>
       <View style={styles.trlmHeaderTopRow}>
@@ -28,8 +25,7 @@ export default function TrlmHeader({
 
         {showLogout ? (
           <Pressable style={styles.trlmLogoutButton} onPress={onLogout}>
-            <Text style={styles.trlmLogoutIcon}>↗</Text>
-            <Text style={styles.trlmLogoutButtonText}>{t("Logout")}</Text>
+            <Text style={styles.trlmLogoutIcon}>Out</Text>
           </Pressable>
         ) : null}
       </View>
@@ -41,8 +37,8 @@ export default function TrlmHeader({
               <Text style={styles.trlmBadgeText}>{badge}</Text>
             </View>
           ) : null}
-          {title ? <Text style={styles.trlmHeaderTitle}>{t(title)}</Text> : null}
-          {subtitle ? <Text style={styles.trlmHeaderSubtitle}>{t(subtitle)}</Text> : null}
+          {title ? <Text style={styles.trlmHeaderTitle}>{title}</Text> : null}
+          {subtitle ? <Text style={styles.trlmHeaderSubtitle}>{subtitle}</Text> : null}
         </View>
       ) : null}
     </View>

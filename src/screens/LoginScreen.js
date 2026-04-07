@@ -480,9 +480,9 @@ export default function LoginScreen({
       </Modal>
 
       <Animated.View
-        pointerEvents="none"
         style={[
           styles.authGlowPrimary,
+          { pointerEvents: "none" },
           {
             transform: [
               {
@@ -496,9 +496,9 @@ export default function LoginScreen({
         ]}
       />
       <Animated.View
-        pointerEvents="none"
         style={[
           styles.authGlowSecondary,
+          { pointerEvents: "none" },
           {
             transform: [
               {

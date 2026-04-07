@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import i18n, { persistLanguage } from "./config";
-import { getLanguageCode } from "./translations";
+import { getLanguageCode, translateText } from "./translations";
+import { addTranslationListener, removeTranslationListener } from "./googleTranslate";
 
 const I18nContext = createContext({
   language: "en",
@@ -18,9 +19,11 @@ export function I18nProvider({ language, onChangeLanguage, children }) {
     };
 
     i18n.on("languageChanged", handleLanguageChange);
+    addTranslationListener(handleLanguageChange);
 
     return () => {
       i18n.off("languageChanged", handleLanguageChange);
+      removeTranslationListener(handleLanguageChange);
     };
   }, []);
 
@@ -46,11 +49,16 @@ export function I18nProvider({ language, onChangeLanguage, children }) {
           return text;
         }
 
-        return i18n.t(text, {
-          lng: resolvedLanguage,
-          defaultValue: text,
-          ...options
-        });
+        const translation = translateText(resolvedLanguage, text);
+        if (translation === text) {
+          return i18n.t(text, {
+            lng: resolvedLanguage,
+            defaultValue: text,
+            ...options
+          });
+        }
+
+        return translation;
       }
     }),
     [onChangeLanguage, resolvedLanguage]

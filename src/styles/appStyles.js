@@ -325,14 +325,11 @@ const styles = StyleSheet.create({
     lineHeight: 18
   },
   trlmLogoutButton: {
-    minWidth: 106,
-    borderRadius: 14,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: "#13213a",
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    flexDirection: "row",
     alignItems: "center",
-    gap: 8,
     justifyContent: "center",
     shadowColor: "#13213a",
     shadowOffset: { width: 0, height: 4 },
@@ -346,9 +343,185 @@ const styles = StyleSheet.create({
     fontWeight: "800"
   },
   trlmLogoutIcon: {
-    color: "#bfdbfe",
-    fontSize: 13,
+    color: "#ffffff",
+    fontSize: 11,
     fontWeight: "900"
+  },
+  sessionGateScreen: {
+    flex: 1,
+    padding: 18,
+    gap: 16,
+    backgroundColor: "#ecf3f9"
+  },
+  sessionGateHero: {
+    backgroundColor: "#17365f",
+    borderRadius: 24,
+    padding: 20,
+    gap: 8,
+    shadowColor: "#0f172a",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 4
+  },
+  sessionGateEyebrow: {
+    color: "#bfdbfe",
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 1.1,
+    textTransform: "uppercase"
+  },
+  sessionGateTitle: {
+    color: "#ffffff",
+    fontSize: 26,
+    fontWeight: "900"
+  },
+  sessionGateHint: {
+    color: "#dbeafe",
+    fontSize: 13,
+    lineHeight: 20
+  },
+  sessionGateCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: "#dbe5ef",
+    padding: 18,
+    gap: 14,
+    shadowColor: "#0f172a",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 4
+  },
+  sessionGateRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#edf2f7"
+  },
+  sessionGateLabel: {
+    color: "#475569",
+    fontSize: 13,
+    fontWeight: "700"
+  },
+  sessionGateValue: {
+    flexShrink: 1,
+    color: "#0f172a",
+    fontSize: 13,
+    fontWeight: "800",
+    textAlign: "right"
+  },
+  sessionGateActionRow: {
+    flexDirection: "row",
+    gap: 12,
+    paddingTop: 6
+  },
+  sessionGateGhostButton: {
+    flex: 1,
+    minHeight: 52,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#93c5fd",
+    backgroundColor: "#eff6ff",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 12
+  },
+  sessionGateGhostButtonText: {
+    color: "#1d4ed8",
+    fontSize: 13,
+    fontWeight: "800",
+    textAlign: "center"
+  },
+  sessionGatePrimaryButton: {
+    flex: 1,
+    minHeight: 52,
+    borderRadius: 16,
+    backgroundColor: "#f97316",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 12,
+    shadowColor: "#f97316",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 4
+  },
+  sessionGatePrimaryButtonText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "900"
+  },
+  sessionStripCard: {
+    backgroundColor: "#ffffff",
+    borderWidth: 1,
+    borderColor: "#d8e4ee",
+    borderRadius: 20,
+    padding: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12
+  },
+  sessionStripCopy: {
+    flex: 1,
+    gap: 4
+  },
+  sessionStripTitle: {
+    color: "#0f172a",
+    fontSize: 15,
+    fontWeight: "900"
+  },
+  sessionStripHint: {
+    color: "#475569",
+    fontSize: 12,
+    lineHeight: 18
+  },
+  sessionStripActions: {
+    alignItems: "flex-end",
+    gap: 10
+  },
+  sessionStripButton: {
+    minWidth: 94,
+    minHeight: 38,
+    borderRadius: 999,
+    backgroundColor: "#17365f",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 16
+  },
+  sessionStripButtonText: {
+    color: "#ffffff",
+    fontSize: 12,
+    fontWeight: "800"
+  },
+  sessionStatusBadge: {
+    minHeight: 30,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  sessionStatusBadgeSuccess: {
+    backgroundColor: "#dcfce7",
+    borderWidth: 1,
+    borderColor: "#86efac"
+  },
+  sessionStatusBadgePending: {
+    backgroundColor: "#fef3c7",
+    borderWidth: 1,
+    borderColor: "#fcd34d"
+  },
+  sessionStatusBadgeText: {
+    color: "#0f172a",
+    fontSize: 11,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 0.5
   },
   centerScreen: {
     flex: 1,
@@ -860,23 +1033,31 @@ const styles = StyleSheet.create({
     gap: 8,
     width: "60%"
   },
+  profileShell: {
+    width: "100%",
+    maxWidth: 640,
+    alignSelf: "center",
+    gap: 14
+  },
   profileHeroCard: {
     backgroundColor: "#102a43",
-    borderRadius: 20,
-    padding: 18,
+    borderRadius: 24,
+    padding: 20,
     flexDirection: "row",
-    gap: 14,
+    gap: 16,
     alignItems: "center",
     shadowColor: "#102a43",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.18,
-    shadowRadius: 14,
-    elevation: 4
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)"
   },
   profileAvatar: {
-    width: 62,
-    height: 62,
-    borderRadius: 31,
+    width: 66,
+    height: 66,
+    borderRadius: 33,
     backgroundColor: "#d97706",
     alignItems: "center",
     justifyContent: "center",
@@ -892,9 +1073,16 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 4
   },
+  profileHeroEyebrow: {
+    color: "#bfdbfe",
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+    textTransform: "uppercase"
+  },
   profileHeroTitle: {
     color: "#ffffff",
-    fontSize: 20,
+    fontSize: 21,
     fontWeight: "900"
   },
   profileHeroSubtitle: {
@@ -920,11 +1108,32 @@ const styles = StyleSheet.create({
   },
   profileInfoCard: {
     backgroundColor: "#ffffff",
-    borderRadius: 18,
-    padding: 16,
+    borderRadius: 22,
+    padding: 18,
     borderWidth: 1,
     borderColor: "#dbe3ea",
-    gap: 12
+    gap: 12,
+    shadowColor: "#0f172a",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 1
+  },
+  profileCardHeader: {
+    gap: 4,
+    paddingBottom: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eef2f7"
+  },
+  profileCardTitle: {
+    color: "#0f172a",
+    fontSize: 18,
+    fontWeight: "900"
+  },
+  profileCardHint: {
+    color: "#64748b",
+    fontSize: 12,
+    lineHeight: 18
   },
   profileInfoRow: {
     flexDirection: "row",
@@ -949,16 +1158,24 @@ const styles = StyleSheet.create({
   },
   profileActionCard: {
     backgroundColor: "#fffaf0",
-    borderRadius: 18,
-    padding: 16,
+    borderRadius: 22,
+    padding: 18,
     borderWidth: 1,
     borderColor: "#fcd9a7",
-    gap: 10
+    gap: 12,
+    shadowColor: "#7c2d12",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 1
+  },
+  profileActionHeader: {
+    gap: 4
   },
   profileActionTitle: {
     color: "#7c2d12",
-    fontSize: 16,
-    fontWeight: "800"
+    fontSize: 18,
+    fontWeight: "900"
   },
   profileActionHint: {
     color: "#9a3412",
