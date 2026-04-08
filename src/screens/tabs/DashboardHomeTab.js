@@ -3713,7 +3713,7 @@ export default function DashboardHomeTab({
     const isChcView = homeView === "lhCboStatusChc";
     const titleMetaMap = {
       lhCboStatusPg: { page: "Page:1B.8A", red: "Producer Group", tail: " Activity Status" },
-      lhCboStatusNfc: { page: "Page:1B.8B", red: "Non-Farm Collective", tail: " Activity Status" },
+      lhCboStatusNfc: { page: "", red: "", tail: "" },
       lhCboStatusIfc: {
         page: "Page:1B.8C",
         red: "Integrated Farming Cluster",
@@ -3753,7 +3753,7 @@ export default function DashboardHomeTab({
     return (
       <View style={pageStyles.screen}>
         <View style={[pageStyles.frame, lhcboStatusStyles.frame]}>
-          {homeView !== "lhCboStatusPg" ? (
+          {homeView !== "lhCboStatusPg" && homeView !== "lhCboStatusNfc" ? (
             <Text style={lhcboStatusStyles.titleText}>
               <Text style={lhcboStatusStyles.titlePage}>{titleMetaMap[homeView].page} </Text>
               <Text style={lhcboStatusStyles.titleRed}>{titleMetaMap[homeView].red}</Text>
