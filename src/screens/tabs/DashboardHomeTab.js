@@ -2367,6 +2367,7 @@ export default function DashboardHomeTab({
           <Pressable style={wrStyles.backBtn} onPress={onBackToDashboard}>
             <Text style={wrStyles.backBtnText}>Back to Dashboard</Text>
           </Pressable>
+          {renderResponsePopup()}
         </View>
       </View>
     );
