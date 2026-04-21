@@ -1662,10 +1662,9 @@ const styles = StyleSheet.create({
   responseModalCard: {
     width: "100%",
     maxWidth: 420,
-    maxHeight: "72%",
     backgroundColor: "#ffffff",
-    borderRadius: 24,
-    padding: 18,
+    borderRadius: 28,
+    padding: 22,
     borderWidth: 1,
     borderColor: "#dbe4ef",
     shadowColor: "#0f172a",
@@ -1673,11 +1672,33 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.16,
     shadowRadius: 18,
     elevation: 8,
-    gap: 14
+    gap: 14,
+    alignItems: "center"
+  },
+  responseStatusIcon: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 4
+  },
+  responseStatusIconSuccess: {
+    backgroundColor: "#dcfce7",
+    borderColor: "#86efac"
+  },
+  responseStatusIconError: {
+    backgroundColor: "#fee2e2",
+    borderColor: "#fca5a5"
+  },
+  responseStatusIconText: {
+    color: "#163c2a",
+    fontSize: 16,
+    fontWeight: "900"
   },
   responseModalTitle: {
     color: "#102a43",
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "900",
     textAlign: "center"
   },
@@ -1686,9 +1707,41 @@ const styles = StyleSheet.create({
   },
   responseModalMessage: {
     color: "#334155",
-    fontSize: 14,
-    lineHeight: 21,
-    fontWeight: "600"
+    fontSize: 15,
+    lineHeight: 22,
+    fontWeight: "700",
+    textAlign: "center"
+  },
+  responseIdBox: {
+    width: "100%",
+    backgroundColor: "#eff6ff",
+    borderWidth: 1,
+    borderColor: "#bfdbfe",
+    borderRadius: 18,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    alignItems: "center"
+  },
+  responseIdLabel: {
+    color: "#475569",
+    fontSize: 12,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 0.7,
+    marginBottom: 4
+  },
+  responseIdValue: {
+    color: "#1e3a8a",
+    fontSize: 24,
+    fontWeight: "900",
+    letterSpacing: 1
+  },
+  responseModalHint: {
+    color: "#64748b",
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: "700",
+    textAlign: "center"
   },
   loginCardTitle: {
     fontSize: 18,

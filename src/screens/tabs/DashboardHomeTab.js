@@ -5,7 +5,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useTranslatedValue } from "../../i18n/I18nProvider";
 import { getCurrentLocation, calculateDistance } from "../../utils/geofence";
 import { fetchActivities, fetchAllCrps, fetchGpsByBlock, fetchShgMembersByVillage, fetchSubCategoriesByActivity, fetchVillagesByGp } from "../../services/masterApi";
-import { pageStyles, wrStyles, neStyles, smStyles, flowStyles, apStyles, nfStyles, tsCardStyles, tsDetailStyles, fsStyles, pastStyles, txnStyles, lhcboStyles, lhGuideStyles, lhcboStatusStyles, lhStyles } from "../../styles/dashboardHomeStyles";
+import { pageStyles, wrStyles, neStyles, smStyles, flowStyles, apStyles, nfStyles, tsCardStyles, tsDetailStyles, fsStyles, pastStyles, txnStyles, lhcboStyles, lhGuideStyles, lhcboStatusStyles, lhStyles, chcEntStyles } from "../../styles/dashboardHomeStyles";
 
 function Text({ children, ...props }) {
   const plainText = typeof children === "string" || typeof children === "number"
@@ -337,6 +337,8 @@ const LIVELIHOOD_CBO_ACTIVITY_OPTIONS = [
   "Fishery",
   "Enterprise"
 ];
+const CHC_ACTIVITY_VALUE = "Enterprise";
+const CHC_ACTIVITY_DISPLAY = "Enterprises";
 const LIVELIHOOD_CBO_NAME_OPTIONS = {
   "Producer Group (PG)": [
     "PG Green Harvest",
@@ -438,6 +440,12 @@ export default function DashboardHomeTab({
   const [selectedLhCboActivity, setSelectedLhCboActivity] = useState(
     firstOption(LIVELIHOOD_CBO_ACTIVITY_OPTIONS)
   );
+
+  // Task: CHC IS Enterprises States
+  const [isChcEnterprisesMode, setIsChcEnterprisesMode] = useState(false);
+  const [chcEnterpriseName, setChcEnterpriseName] = useState("");
+  const [chcServices, setChcServices] = useState("");
+
   const livelihoodCboNameOptions = LIVELIHOOD_CBO_NAME_OPTIONS[lhCboType] || [];
   const [lhCboImages, setLhCboImages] = useState([]);
   const [lhCboImageIndex, setLhCboImageIndex] = useState(0);
@@ -1136,6 +1144,9 @@ export default function DashboardHomeTab({
     "Farmer Producer Company (FPC)": "lhCboStatusFpc"
   };
   const selectedLhCboStatusView = lhCboStatusViewByType[lhCboType] || "lhCboStatusPg";
+  const displayedLhCboActivity = isChcEnterprisesMode
+    ? CHC_ACTIVITY_DISPLAY
+    : selectedLhCboActivity;
   const activeLhCboImage =
     lhCboImages.length > 0 ? lhCboImages[Math.min(lhCboImageIndex, lhCboImages.length - 1)] : "";
 
@@ -1263,6 +1274,32 @@ export default function DashboardHomeTab({
     onOpenUpdateData(selectedLhCboStatusView);
   };
 
+  // Task: CHC Enterprises Handler
+  const handleChcEnterprisesSaveAndNext = () => {
+    if (!chcEnterpriseName.trim()) {
+      Alert.alert("CHC Enterprises", "Enterprise name is required.");
+      return;
+    }
+    if (!chcServices.trim()) {
+      Alert.alert("CHC Enterprises", "Services offered are required.");
+      return;
+    }
+
+    // Save logic here (similar to other handlers)
+    showSavedDataPopup(
+      "CHC Enterprises",
+      {
+        enterpriseName: chcEnterpriseName,
+        services: chcServices,
+        activity: CHC_ACTIVITY_DISPLAY,
+        lhCboType: lhCboType,
+        lhCboName: selectedLhCboName
+      },
+      selectedLhCboStatusView
+    );
+  };
+
+
   const handleProfileSave = (title, data, nextView = "") => {
     showSavedDataPopup(title, data, nextView);
   };
@@ -1351,6 +1388,19 @@ export default function DashboardHomeTab({
       setSelectedLhCboActivity(livelihoodCboActivityOptions[0]);
     }
   }, [livelihoodCboActivityOptions, selectedLhCboActivity]);
+
+  // Task: CHC Enterprises Auto-trigger
+  useEffect(() => {
+    if (lhCboType === "Custom Hiring Center (CHC)") {
+      setIsChcEnterprisesMode(true);
+      setSelectedLhCboActivity(CHC_ACTIVITY_VALUE);
+    } else {
+      setIsChcEnterprisesMode(false);
+      setChcEnterpriseName("");
+      setChcServices("");
+    }
+  }, [lhCboType]);
+
 
   useEffect(() => {
     setActivityProfile((prev) => ({
@@ -3509,15 +3559,22 @@ export default function DashboardHomeTab({
                 />
               </View>
 
-              <View style={lhcboStyles.row}>
-                <Text style={lhcboStyles.label}>Activity of the LH-CBO</Text>
-                <CycleDropdown
-                  value={selectedLhCboActivity}
-                  options={livelihoodCboActivityOptions}
-                  style={lhcboStyles.dropdown}
-                  onChange={setSelectedLhCboActivity}
-                />
-              </View>
+              {!isChcEnterprisesMode ? (
+                <View style={lhcboStyles.row}>
+                  <Text style={lhcboStyles.label}>Activity of the LH-CBO</Text>
+                  <CycleDropdown
+                    value={selectedLhCboActivity}
+                    options={livelihoodCboActivityOptions}
+                    style={lhcboStyles.dropdown}
+                    onChange={setSelectedLhCboActivity}
+                  />
+                </View>
+              ) : (
+                <View style={chcEntStyles.fixedActivityRow}>
+                  <Text style={chcEntStyles.entLabel}>Activity of the LH-CBO</Text>
+                  <Text style={chcEntStyles.fixedActivityText}>{CHC_ACTIVITY_DISPLAY}</Text>
+                </View>
+              )}
 
               <View style={lhcboStyles.metaPanel}>
                 <View style={lhcboStyles.metaChip}>
@@ -3527,7 +3584,7 @@ export default function DashboardHomeTab({
                 <View style={lhcboStyles.metaChip}>
                   <Text style={lhcboStyles.metaChipLabel}>Activity</Text>
                   <Text style={lhcboStyles.metaChipValue}>
-                    {selectedLhCboActivity || "Not selected"}
+                    {displayedLhCboActivity || "Not selected"}
                   </Text>
                 </View>
               </View>
@@ -3612,13 +3669,47 @@ export default function DashboardHomeTab({
                 </Text>
               </View>
 
+              {isChcEnterprisesMode ? (
+                <View style={chcEntStyles.enterpriseBanner}>
+                  <Text style={chcEntStyles.bannerIcon}>🏢</Text>
+                  <Text style={chcEntStyles.bannerTitle}>CHC Enterprises Mode</Text>
+                  <Text style={chcEntStyles.bannerHint}>Custom Hiring Center selected. Activity fixed as "Enterprises". Enter specific enterprise details below.</Text>
+                </View>
+              ) : null}
+              
+              {isChcEnterprisesMode ? (
+                <>
+                  <View style={chcEntStyles.entFieldRow}>
+                    <Text style={chcEntStyles.entLabel}>CHC Enterprises Name</Text>
+                    <TextInput
+                      style={chcEntStyles.entInput}
+                      value={chcEnterpriseName}
+                      onChangeText={setChcEnterpriseName}
+                      placeholder="e.g. FarmTech Services Hub"
+                    />
+                  </View>
+                  <View style={chcEntStyles.entFieldRow}>
+                    <Text style={chcEntStyles.entLabel}>Services Offered</Text>
+                    <TextInput
+                      style={chcEntStyles.entServicesInput}
+                      value={chcServices}
+                      onChangeText={setChcServices}
+                      placeholder="List services&#10;(Tractor rental, Ploughing, Seeding, Harvesting)"
+                      multiline
+                      numberOfLines={3}
+                      textAlignVertical="top"
+                    />
+                  </View>
+                </>
+              ) : null}
+
               <View style={lhcboStyles.actionRow}>
                 <Pressable style={lhcboStyles.checkBtn} onPress={() => checkRadiusDistance(false)}>
                   <Text style={lhcboStyles.checkBtnText}>
                     {isDistanceLoading ? "Checking..." : "Check 50m Radius"}
                   </Text>
                 </Pressable>
-                <Pressable style={lhcboStyles.saveBtn} onPress={handleLhCboSaveAndNext}>
+                <Pressable style={lhcboStyles.saveBtn} onPress={isChcEnterprisesMode ? handleChcEnterprisesSaveAndNext : handleLhCboSaveAndNext}>
                   <Text style={lhcboStyles.saveBtnText}>Save & Next</Text>
                 </Pressable>
               </View>
@@ -3661,8 +3752,10 @@ export default function DashboardHomeTab({
             <View style={lhGuideStyles.dropdownRow}>
               <Text style={lhGuideStyles.dropdownLabel}>Livelihood Activity:</Text>
               <View style={lhGuideStyles.dropdownValueBox}>
-                <Text style={lhGuideStyles.dropdownValue}>{selectedLhCboActivity}</Text>
-                <Text style={lhGuideStyles.dropdownArrow}>v</Text>
+                <Text style={lhGuideStyles.dropdownValue}>{displayedLhCboActivity}</Text>
+                {isChcEnterprisesMode ? null : (
+                  <Text style={lhGuideStyles.dropdownArrow}>v</Text>
+                )}
               </View>
             </View>
             <View style={lhGuideStyles.dropdownRow}>
@@ -3869,7 +3962,7 @@ export default function DashboardHomeTab({
                       : {
                           name: selectedLhCboName,
                           gpVcName: user.gpVcName || "-",
-                          activity: selectedLhCboActivity,
+                          activity: displayedLhCboActivity,
                           category: lhCboType,
                           geoStatus: geoStatusVariant
                         },

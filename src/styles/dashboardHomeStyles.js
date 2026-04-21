@@ -3609,6 +3609,75 @@ export const lhcboStyles = StyleSheet.create({
   }
 });
 
+export const chcEntStyles = StyleSheet.create({
+  enterpriseBanner: {
+    backgroundColor: "#fef3c7",
+    borderWidth: 2,
+    borderColor: "#f59e0b",
+    borderRadius: 16,
+    padding: 16,
+    marginVertical: 12,
+    alignItems: "center",
+    shadowColor: "#d97706",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 4
+  },
+  bannerIcon: {
+    fontSize: 24,
+    fontWeight: "900",
+    color: "#b45309",
+    marginBottom: 8
+  },
+  bannerTitle: {
+    fontSize: 16,
+    fontWeight: "900",
+    color: "#92400e",
+    textAlign: "center",
+    marginBottom: 4
+  },
+  bannerHint: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#78350f",
+    textAlign: "center",
+    lineHeight: 18
+  },
+  entFieldRow: {
+    ...lhcboStyles.row,
+    backgroundColor: "#fffbeb"
+  },
+  entLabel: {
+    ...lhcboStyles.label,
+    color: "#92400e"
+  },
+  entInput: {
+    ...lhcboStyles.input,
+    backgroundColor: "#fef7c6",
+    borderColor: "#f59e0b",
+    minHeight: 52,
+    fontSize: 13,
+    fontWeight: "700"
+  },
+  entServicesInput: {
+    ...lhcboStyles.input,
+    minHeight: 80,
+    textAlignVertical: "top"
+  },
+  fixedActivityRow: {
+    ...lhcboStyles.row,
+    backgroundColor: "#ecfdf5",
+    borderColor: "#6ee7b7"
+  },
+  fixedActivityText: {
+    ...lhcboStyles.input,
+    color: "#059669",
+    fontWeight: "900",
+    backgroundColor: "#d1fae5"
+  }
+});
+
 export const lhGuideStyles = StyleSheet.create({
   frame: {
     gap: 8,
@@ -3963,8 +4032,6 @@ export const lhStyles = StyleSheet.create({
     fontWeight: "800"
   }
 });
-
-
 
 
 

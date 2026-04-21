@@ -163,9 +163,19 @@ export default function LoginScreen({
   const cardAnim = useRef(new Animated.Value(0)).current;
 
   const signupSubmitting = signupStatus === "loading";
+  const signupApiStatus = signupApiModal?.status || "";
+  const signupApiIsSuccess = signupApiStatus === "success";
+  const signupApiTitle =
+    signupApiModal?.title ||
+    (signupApiIsSuccess ? "Signup Successful" : "Signup Update");
+  const signupApiMessage =
+    signupApiModal?.message ||
+    (signupApiIsSuccess
+      ? "Your registration has been sent for approval."
+      : "Please check the details and try again.");
 
   useEffect(() => {
-    Animated.parallel([
+    const animation = Animated.parallel([
       Animated.timing(cardAnim, {
         toValue: 1,
         duration: 600,
@@ -185,7 +195,13 @@ export default function LoginScreen({
           })
         ])
       )
-    ]).start();
+    ]);
+
+    animation.start();
+
+    return () => {
+      animation.stop();
+    };
   }, [cardAnim, floatAnim]);
 
   useEffect(() => {
@@ -464,16 +480,35 @@ export default function LoginScreen({
       >
         <View style={styles.responseModalOverlay}>
           <View style={styles.responseModalCard}>
-            <Text style={styles.responseModalTitle}>
-              {signupApiModal?.title || "Signup API Response"}
-            </Text>
-            <ScrollView style={styles.responseModalScroll}>
-              <Text style={styles.responseModalMessage}>
-                {signupApiModal?.message || ""}
+            <View
+              style={[
+                styles.responseStatusIcon,
+                signupApiIsSuccess
+                  ? styles.responseStatusIconSuccess
+                  : styles.responseStatusIconError
+              ]}
+            >
+              <Text style={styles.responseStatusIconText}>
+                {signupApiIsSuccess ? "OK" : "!"}
               </Text>
-            </ScrollView>
+            </View>
+            <Text style={styles.responseModalTitle}>{signupApiTitle}</Text>
+            <Text style={styles.responseModalMessage}>{signupApiMessage}</Text>
+            {signupApiModal?.crpId ? (
+              <View style={styles.responseIdBox}>
+                <Text style={styles.responseIdLabel}>Your CRP ID</Text>
+                <Text style={styles.responseIdValue}>{signupApiModal.crpId}</Text>
+              </View>
+            ) : null}
+            {signupApiIsSuccess ? (
+              <Text style={styles.responseModalHint}>
+                Please wait for admin approval. After approval, you can log in with this CRP ID.
+              </Text>
+            ) : null}
             <Pressable style={styles.loginButton} onPress={onCloseSignupApiModal}>
-              <Text style={styles.loginButtonText}>OK</Text>
+              <Text style={styles.loginButtonText}>
+                {signupApiIsSuccess ? "Go to Login" : "OK"}
+              </Text>
             </Pressable>
           </View>
         </View>

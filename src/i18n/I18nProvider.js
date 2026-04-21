@@ -1,4 +1,11 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState
+} from "react";
 import i18n, { persistLanguage } from "./config";
 import { getLanguageCode, translateText } from "./translations";
 import { addTranslationListener, removeTranslationListener } from "./googleTranslate";
@@ -33,35 +40,45 @@ export function I18nProvider({ language, onChangeLanguage, children }) {
     }
   }, [resolvedLanguage]);
 
+  const handleSetLanguage = useCallback(
+    async (nextLanguage) => {
+      const nextCode = getLanguageCode(nextLanguage);
+      await persistLanguage(nextCode);
+      await i18n.changeLanguage(nextCode);
+      if (onChangeLanguage) {
+        await onChangeLanguage(nextCode);
+      }
+    },
+    [onChangeLanguage]
+  );
+
+  const translate = useCallback(
+    (text, options = {}) => {
+      if (typeof text !== "string") {
+        return text;
+      }
+
+      const translation = translateText(resolvedLanguage, text);
+      if (translation === text) {
+        return i18n.t(text, {
+          lng: resolvedLanguage,
+          defaultValue: text,
+          ...options
+        });
+      }
+
+      return translation;
+    },
+    [resolvedLanguage]
+  );
+
   const value = useMemo(
     () => ({
       language: resolvedLanguage,
-      setLanguage: async (nextLanguage) => {
-        const nextCode = getLanguageCode(nextLanguage);
-        await persistLanguage(nextCode);
-        await i18n.changeLanguage(nextCode);
-        if (onChangeLanguage) {
-          await onChangeLanguage(nextCode);
-        }
-      },
-      t: (text, options = {}) => {
-        if (typeof text !== "string") {
-          return text;
-        }
-
-        const translation = translateText(resolvedLanguage, text);
-        if (translation === text) {
-          return i18n.t(text, {
-            lng: resolvedLanguage,
-            defaultValue: text,
-            ...options
-          });
-        }
-
-        return translation;
-      }
+      setLanguage: handleSetLanguage,
+      t: translate
     }),
-    [onChangeLanguage, resolvedLanguage]
+    [handleSetLanguage, resolvedLanguage, translate]
   );
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;

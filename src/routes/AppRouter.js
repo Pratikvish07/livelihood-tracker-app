@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, SafeAreaView, ScrollView, Text, View } from "react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useDispatch, useSelector } from "react-redux";
@@ -383,25 +383,30 @@ export default function AppRouter() {
     }
   };
 
-  const handleSetLanguage = async (selectedLanguage) => {
-    const normalizedLanguage = getLanguageCode(selectedLanguage);
-    dispatch(setLanguage(normalizedLanguage));
-    try {
-      await persistLanguage(normalizedLanguage);
-    } catch (error) {
-      console.error("Error saving language:", error);
-    }
-  };
+  const handleSetLanguage = useCallback(
+    async (selectedLanguage) => {
+      const normalizedLanguage = getLanguageCode(selectedLanguage);
+      dispatch(setLanguage(normalizedLanguage));
+      try {
+        await persistLanguage(normalizedLanguage);
+      } catch (error) {
+        console.error("Error saving language:", error);
+      }
+    },
+    [dispatch]
+  );
   const [pendingApprovalCrpId, setPendingApprovalCrpId] = useState("");
   const [signupApiModal, setSignupApiModal] = useState({
     visible: false,
     title: "",
-    message: ""
+    message: "",
+    status: "",
+    crpId: ""
   });
 
   const [activities, setActivities] = useState([]);
 
-  const t = (text) => translateText(language, text);
+  const t = useCallback((text) => translateText(language, text), [language]);
   const formatSessionDuration = (totalSeconds) => {
     const safeSeconds = Math.max(0, Number(totalSeconds) || 0);
     const hours = Math.floor(safeSeconds / 3600);
@@ -739,10 +744,6 @@ export default function AppRouter() {
       dispatch(signupStart());
       const response = await submitCrpSignup(payload);
       console.log("CRP signup response:", response);
-      const responseDump =
-        typeof response === "string"
-          ? response
-          : JSON.stringify(response, null, 2);
       const responseMessage =
         typeof response === "string"
           ? response
@@ -792,11 +793,10 @@ export default function AppRouter() {
       dispatch(signupSuccess({ crpId: createdIdentity, message: signupSuccessMessage }));
       setSignupApiModal({
         visible: true,
-        title: t("Signup API Response"),
-        message:
-          responseMessage === responseDump
-            ? responseMessage
-            : `${responseMessage}\n\n${responseDump}`
+        title: t("Signup Successful"),
+        message: t("Your registration has been sent for approval."),
+        status: "success",
+        crpId: createdIdentity
       });
       setHomeView("dashboard");
       setActiveTab("Home");
@@ -807,8 +807,10 @@ export default function AppRouter() {
       dispatch(signupFailure(errorMessage));
       setSignupApiModal({
         visible: true,
-        title: t("Signup API Response"),
-        message: errorMessage
+        title: t("Signup Failed"),
+        message: errorMessage,
+        status: "error",
+        crpId: ""
       });
     }
   };
@@ -1141,7 +1143,9 @@ export default function AppRouter() {
             setSignupApiModal({
               visible: false,
               title: "",
-              message: ""
+              message: "",
+              status: "",
+              crpId: ""
             })
           }
         />
