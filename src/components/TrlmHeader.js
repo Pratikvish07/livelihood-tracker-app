@@ -18,8 +18,14 @@ export default function TrlmHeader({
             <Text style={styles.trlmSealText}>TR</Text>
           </View>
           <View style={styles.trlmBrandCopy}>
-            <Text style={styles.trlmGovtLabel}>Government of Tripura</Text>
-            <Text style={styles.trlmGovtDept}>Tripura Rural Livelihood Mission</Text>
+            {compact ? (
+              <Text style={styles.trlmGovtDept}>TRLM Portal</Text>
+            ) : (
+              <>
+                <Text style={styles.trlmGovtLabel}>Government of Tripura</Text>
+                <Text style={styles.trlmGovtDept}>Tripura Rural Livelihood Mission</Text>
+              </>
+            )}
           </View>
         </View>
 

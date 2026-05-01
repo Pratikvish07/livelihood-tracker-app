@@ -4,7 +4,7 @@ import { Alert, Image, Modal, Platform, Pressable, ScrollView, Text as RNText, T
 import * as ImagePicker from "expo-image-picker";
 import { useTranslatedValue } from "../../i18n/I18nProvider";
 import { getCurrentLocation, calculateDistance } from "../../utils/geofence";
-import { fetchActivities, fetchAllCrps, fetchGpsByBlock, fetchShgMembersByVillage, fetchSubCategoriesByActivity, fetchVillagesByGp } from "../../services/masterApi";
+import { fetchActivities, fetchAllCrps, fetchGpsByBlock, fetchShgMembersByVillage, fetchSubCategoriesByActivity, fetchVillagesByGp, submitLivelihoodAssignment } from "../../services/masterApi";
 import { pageStyles, wrStyles, neStyles, smStyles, flowStyles, apStyles, nfStyles, tsCardStyles, tsDetailStyles, fsStyles, pastStyles, txnStyles, lhcboStyles, lhGuideStyles, lhcboStatusStyles, lhStyles, chcEntStyles } from "../../styles/dashboardHomeStyles";
 
 function Text({ children, ...props }) {
@@ -28,6 +28,17 @@ function TextInput({ placeholder, ...props }) {
       : placeholder;
 
   return <RNTextInput {...props} placeholder={resolvedPlaceholder} />;
+}
+
+function getMimeTypeFromUri(uri = "") {
+  const normalized = String(uri).toLowerCase();
+  if (normalized.endsWith(".png")) {
+    return "image/png";
+  }
+  if (normalized.endsWith(".webp")) {
+    return "image/webp";
+  }
+  return "image/jpeg";
 }
 
 function DropdownField({
@@ -1222,6 +1233,16 @@ export default function DashboardHomeTab({
   };
 
   const handleSaveAndNext = async () => {
+    if (!selectedAssignedMember) {
+      Alert.alert("SHG Member Details", "Select an SHG member before saving.");
+      return;
+    }
+
+    if (!uploadedImageUri) {
+      Alert.alert("SHG Member Details", "Upload the latest activity image before saving.");
+      return;
+    }
+
     const meters = await checkRadiusDistance(false);
     if (meters === null) {
       Alert.alert(
@@ -1237,18 +1258,73 @@ export default function DashboardHomeTab({
       );
       return;
     }
-    showSavedDataPopup(
-      "SHG Member Details",
-      {
-        memberBelongsToLhCbo: memberBelongsToLhCbo ? "Yes" : "No",
-        nameOfLhCbo: lhCboName || "Not provided",
-        radiusStatus: `Within 50m (${meters}m)`,
-        currentCrpLocation: currentCrpLocation
-          ? `${currentCrpLocation.latitude.toFixed(6)}, ${currentCrpLocation.longitude.toFixed(6)}`
-          : "Captured"
-      },
-      normalizedSubCategory === "Farm" ? "lhActivityFarm" : currentStatusView
-    );
+
+    const selectedActivity = activityTypes.find((item) => item.name === activityType);
+    const selectedSubCategory = subCategories.find((item) => item.name === subCategory);
+    const coordinates = activityCoordinates || currentCrpLocation;
+
+    if (!selectedActivity?.id) {
+      Alert.alert("SHG Member Details", "Select a livelihood activity before saving.");
+      return;
+    }
+
+    if (!selectedSubCategory?.id) {
+      Alert.alert("SHG Member Details", "Select a sub-category before saving.");
+      return;
+    }
+
+    if (!coordinates) {
+      Alert.alert("SHG Member Details", "Capture location before saving.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("MemberId", String(Number(selectedAssignedMember.id) || 0));
+    formData.append("ActivityId", String(Number(selectedActivity.id) || 0));
+    formData.append("SubCategoryId", String(Number(selectedSubCategory.id) || 0));
+    formData.append("Longitude", String(Number(coordinates.longitude) || 0));
+    formData.append("Latitude", String(Number(coordinates.latitude) || 0));
+    formData.append("IsLH_CBO", String(Boolean(memberBelongsToLhCbo)));
+    formData.append("LH_CBO_Name", memberBelongsToLhCbo ? String(lhCboName || "") : "");
+    formData.append("RadiusValid", String(meters <= 50));
+
+    try {
+      if (Platform.OS === "web") {
+        const imageResponse = await fetch(uploadedImageUri);
+        const imageBlob = await imageResponse.blob();
+        formData.append("Image", imageBlob, uploadedImageName || "livelihood-image.jpg");
+      } else {
+        formData.append("Image", {
+          uri: uploadedImageUri,
+          name: uploadedImageName || "livelihood-image.jpg",
+          type: getMimeTypeFromUri(uploadedImageUri)
+        });
+      }
+
+      await submitLivelihoodAssignment(formData);
+
+      showSavedDataPopup(
+        "SHG Member Details",
+        {
+          memberId: selectedAssignedMember.id,
+          memberName: selectedAssignedMember.memberName,
+          activityId: selectedActivity.id,
+          activityName: selectedActivity.name,
+          subCategoryId: selectedSubCategory.id,
+          subCategoryName: selectedSubCategory.name,
+          memberBelongsToLhCbo: memberBelongsToLhCbo ? "Yes" : "No",
+          nameOfLhCbo: memberBelongsToLhCbo ? lhCboName || "Not provided" : "Not applicable",
+          radiusStatus: `Within 50m (${meters}m)`,
+          currentCrpLocation: `${Number(coordinates.latitude).toFixed(6)}, ${Number(coordinates.longitude).toFixed(6)}`
+        },
+        normalizedSubCategory === "Farm" ? "lhActivityFarm" : currentStatusView
+      );
+    } catch (error) {
+      Alert.alert(
+        "SHG Member Details",
+        error.message || "Unable to save livelihood assignment right now."
+      );
+    }
   };
 
   const handleLhCboSaveAndNext = async () => {

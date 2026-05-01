@@ -1,9 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Animated,
   Alert,
-  Image,
+  Animated,
   Modal,
   Pressable,
   ScrollView,
@@ -33,8 +32,6 @@ import {
 import { getCurrentLocation } from "../utils/geofence";
 
 const EMPTY_ARRAY = [];
-const ID_TYPE_OPTIONS = ["CRP ID", "Master ID"];
-const TRLM_BRAND_IMAGE = require("../../assets/branding/livelihood-tracker-icon.png");
 const FALLBACK_CATEGORY_OPTIONS = [
   { id: 3, name: "Others" },
   { id: 2, name: "Non-Farm" },
@@ -77,15 +74,7 @@ function OptionSelector({
   );
   const isOpen = openDropdown === selectorKey;
 
-  if (disabled) {
-    return (
-      <View style={styles.dropdownDisabled}>
-        <Text style={styles.dropdownDisabledText}>{emptyText}</Text>
-      </View>
-    );
-  }
-
-  if (!options.length) {
+  if (disabled || !options.length) {
     return (
       <View style={styles.dropdownDisabled}>
         <Text style={styles.dropdownDisabledText}>{emptyText}</Text>
@@ -146,21 +135,17 @@ function OptionSelector({
   );
 }
 
-export default function LoginScreen({
-  loginForm,
-  setLoginForm,
-  onLogin,
+export default function SignupScreen({
   signupForm,
   setSignupForm,
   onSignup,
   signupStatus,
   signupError,
-  loginSubmitting = false,
   signupApiModal,
-  onCloseSignupApiModal
+  onCloseSignupApiModal,
+  onGoToLogin
 }) {
   const { t } = useI18n();
-  const [mode, setMode] = useState("login");
   const [districts, setDistricts] = useState([]);
   const [blocks, setBlocks] = useState([]);
   const [gps, setGps] = useState([]);
@@ -169,11 +154,8 @@ export default function LoginScreen({
   const [crpTypes, setCrpTypes] = useState([]);
   const [mastersLoading, setMastersLoading] = useState(false);
   const [openDropdown, setOpenDropdown] = useState("");
-  const [locationState, setLocationState] = useState({
-    loading: false,
-    coords: null
-  });
-  const floatAnim = useRef(new Animated.Value(0)).current;
+  const [locationState, setLocationState] = useState({ loading: false, coords: null });
+
   const cardAnim = useRef(new Animated.Value(0)).current;
 
   const signupSubmitting = signupStatus === "loading";
@@ -189,40 +171,15 @@ export default function LoginScreen({
       : "Please check the details and try again.");
 
   useEffect(() => {
-    const animation = Animated.parallel([
-      Animated.timing(cardAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true
-      }),
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(floatAnim, {
-            toValue: 1,
-            duration: 2600,
-            useNativeDriver: true
-          }),
-          Animated.timing(floatAnim, {
-            toValue: 0,
-            duration: 2600,
-            useNativeDriver: true
-          })
-        ])
-      )
-    ]);
+    Animated.timing(cardAnim, {
+      toValue: 1,
+      duration: 600,
+      useNativeDriver: true
+    }).start();
+  }, [cardAnim]);
 
-    animation.start();
-
-    return () => {
-      animation.stop();
-    };
-  }, [cardAnim, floatAnim]);
-
+  // Load master data on mount
   useEffect(() => {
-    if (mode !== "signup") {
-      return;
-    }
-
     let active = true;
 
     async function loadSignupMasters() {
@@ -234,9 +191,7 @@ export default function LoginScreen({
           fetchCrpTypes()
         ]);
 
-        if (!active) {
-          return;
-        }
+        if (!active) return;
 
         setDistricts(districtData);
         setCategories(categoryData.length ? categoryData : FALLBACK_CATEGORY_OPTIONS);
@@ -245,113 +200,54 @@ export default function LoginScreen({
         if (active) {
           setCategories(FALLBACK_CATEGORY_OPTIONS);
           setCrpTypes(FALLBACK_CRP_TYPE_OPTIONS);
-          Alert.alert(
-            t("Signup data"),
-            error.message || t("Unable to load signup master data.")
-          );
+          Alert.alert(t("Signup data"), error.message || t("Unable to load signup master data."));
         }
       } finally {
-        if (active) {
-          setMastersLoading(false);
-        }
+        if (active) setMastersLoading(false);
       }
     }
 
     loadSignupMasters();
-
-    return () => {
-      active = false;
-    };
-  }, [mode, t]);
+    return () => { active = false; };
+  }, [t]);
 
   useEffect(() => {
-    if (!signupForm.districtId) {
-      setBlocks([]);
-      return;
-    }
-
+    if (!signupForm.districtId) { setBlocks([]); return; }
     let active = true;
 
-    async function loadBlocks() {
-      try {
-        const payload = await fetchBlocksByDistrict(signupForm.districtId);
-        if (active) {
-          setBlocks(payload);
-        }
-      } catch (error) {
-        if (active) {
-          Alert.alert(t("Signup data"), error.message || t("Unable to load blocks."));
-        }
-      }
-    }
+    fetchBlocksByDistrict(signupForm.districtId)
+      .then((payload) => { if (active) setBlocks(payload); })
+      .catch((error) => {
+        if (active) Alert.alert(t("Signup data"), error.message || t("Unable to load blocks."));
+      });
 
-    loadBlocks();
-
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, [signupForm.districtId, t]);
 
   useEffect(() => {
-    if (!signupForm.blockId) {
-      setGps([]);
-      return;
-    }
-
+    if (!signupForm.blockId) { setGps([]); return; }
     let active = true;
 
-    async function loadGps() {
-      try {
-        const payload = await fetchGpsByBlock(signupForm.blockId);
-        if (active) {
-          setGps(payload);
-        }
-      } catch (error) {
-        if (active) {
-          Alert.alert(
-            t("Signup data"),
-            error.message || t("Unable to load Gram Panchayat / VC list.")
-          );
-        }
-      }
-    }
+    fetchGpsByBlock(signupForm.blockId)
+      .then((payload) => { if (active) setGps(payload); })
+      .catch((error) => {
+        if (active) Alert.alert(t("Signup data"), error.message || t("Unable to load Gram Panchayat / VC list."));
+      });
 
-    loadGps();
-
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, [signupForm.blockId, t]);
 
   useEffect(() => {
-    if (!signupForm.gpId) {
-      setVillages([]);
-      return;
-    }
-
+    if (!signupForm.gpId) { setVillages([]); return; }
     let active = true;
 
-    async function loadVillages() {
-      try {
-        const payload = await fetchVillagesByGp(signupForm.gpId);
-        if (active) {
-          setVillages(payload);
-        }
-      } catch (error) {
-        if (active) {
-          Alert.alert(
-            t("Signup data"),
-            error.message || t("Unable to load villages.")
-          );
-        }
-      }
-    }
+    fetchVillagesByGp(signupForm.gpId)
+      .then((payload) => { if (active) setVillages(payload); })
+      .catch((error) => {
+        if (active) Alert.alert(t("Signup data"), error.message || t("Unable to load villages."));
+      });
 
-    loadVillages();
-
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, [signupForm.gpId, t]);
 
   const generatedCrpId = useMemo(
@@ -365,10 +261,7 @@ export default function LoginScreen({
   );
 
   const updateSignup = (patch) => {
-    setSignupForm((prev) => ({
-      ...prev,
-      ...patch
-    }));
+    setSignupForm((prev) => ({ ...prev, ...patch }));
   };
 
   const selectDistrict = (item) => {
@@ -382,7 +275,6 @@ export default function LoginScreen({
       gpVc: EMPTY_ARRAY,
       villages: EMPTY_ARRAY
     });
-    setOpenDropdown("");
     setBlocks([]);
     setGps([]);
     setVillages([]);
@@ -397,71 +289,36 @@ export default function LoginScreen({
       gpVc: EMPTY_ARRAY,
       villages: EMPTY_ARRAY
     });
-    setOpenDropdown("");
     setGps([]);
     setVillages([]);
   };
 
   const selectGp = (item) => {
-    updateSignup({
-      gpId: item.id,
-      gpVc: [item.name],
-      villageId: "",
-      villages: EMPTY_ARRAY
-    });
-    setOpenDropdown("");
+    updateSignup({ gpId: item.id, gpVc: [item.name], villageId: "", villages: EMPTY_ARRAY });
     setVillages([]);
   };
 
   const selectVillage = (item) => {
-    updateSignup({
-      villageId: item.id,
-      villages: [item.name]
-    });
-    setOpenDropdown("");
-  };
-
-  const selectCrpType = (item) => {
-    updateSignup({
-      crpTypeId: String(item.id)
-    });
-    setOpenDropdown("");
-  };
-
-  const selectCategory = (item) => {
-    updateSignup({
-      categoryId: String(item.id)
-    });
-    setOpenDropdown("");
+    updateSignup({ villageId: item.id, villages: [item.name] });
   };
 
   const pickProfilePhoto = async () => {
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (permission.status !== "granted") {
-        Alert.alert(
-          t("Permission needed"),
-          t("Photo library permission is required to select a profile photo.")
-        );
+        Alert.alert(t("Permission needed"), t("Photo library permission is required to select a profile photo."));
         return;
       }
-
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         quality: 0.8
       });
-
       if (!result.canceled && result.assets?.length) {
-        updateSignup({
-          pictureFile: result.assets[0].uri
-        });
+        updateSignup({ pictureFile: result.assets[0].uri });
       }
     } catch (error) {
-      Alert.alert(
-        t("Photo selection"),
-        error.message || t("Unable to select profile photo.")
-      );
+      Alert.alert(t("Photo selection"), error.message || t("Unable to select profile photo."));
     }
   };
 
@@ -470,24 +327,12 @@ export default function LoginScreen({
       setLocationState((prev) => ({ ...prev, loading: true }));
       const coords = await getCurrentLocation();
       if (!coords) {
-        Alert.alert(
-          t("Location"),
-          t("Unable to capture current location. You can still continue and submit 0,0 coordinates.")
-        );
+        Alert.alert(t("Location"), t("Unable to capture current location. You can still continue and submit 0,0 coordinates."));
       }
-      setLocationState({
-        loading: false,
-        coords
-      });
+      setLocationState({ loading: false, coords });
     } catch (error) {
-      setLocationState({
-        loading: false,
-        coords: null
-      });
-      Alert.alert(
-        t("Location"),
-        error.message || t("Unable to capture current location.")
-      );
+      setLocationState({ loading: false, coords: null });
+      Alert.alert(t("Location"), error.message || t("Unable to capture current location."));
     }
   };
 
@@ -497,6 +342,7 @@ export default function LoginScreen({
 
   return (
     <View style={styles.loginContainer}>
+      {/* API Response Modal */}
       <Modal
         visible={Boolean(signupApiModal?.visible)}
         transparent
@@ -539,38 +385,6 @@ export default function LoginScreen({
         </View>
       </Modal>
 
-      <Animated.View
-        style={[
-          styles.authGlowPrimary,
-          { pointerEvents: "none" },
-          {
-            transform: [
-              {
-                translateY: floatAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, -14]
-                })
-              }
-            ]
-          }
-        ]}
-      />
-      <Animated.View
-        style={[
-          styles.authGlowSecondary,
-          { pointerEvents: "none" },
-          {
-            transform: [
-              {
-                translateY: floatAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, 18]
-                })
-              }
-            ]
-          }
-        ]}
-      />
       <ScrollView
         style={styles.signupScrollView}
         contentContainerStyle={styles.loginFormArea}
@@ -578,194 +392,25 @@ export default function LoginScreen({
       >
         <Animated.View
           style={[
-            styles.loginHeader,
+            styles.loginCard,
+            styles.loginCardGlass,
             {
               opacity: cardAnim,
               transform: [
                 {
                   translateY: cardAnim.interpolate({
                     inputRange: [0, 1],
-                    outputRange: [24, 0]
+                    outputRange: [40, 0]
                   })
                 }
               ]
             }
           ]}
         >
-          <View style={styles.loginLogoWrapper}>
-            <View style={styles.loginGlassChip}>
-              <Text style={styles.loginGlassChipText}>Secure Field Access</Text>
-            </View>
-            <View style={styles.loginLogoCircle}>
-              <Image source={TRLM_BRAND_IMAGE} style={styles.loginLogoImage} />
-            </View>
-            <Text style={styles.loginAppName}>Livelihood Tracker</Text>
-            <Text style={styles.loginTagline}>
-              {t("Digital Livelihood Monitoring System")}
-            </Text>
-            <View style={styles.loginHeroMetricRow}>
-              <View style={styles.loginHeroMetric}>
-                <Text style={styles.loginHeroMetricValue}>24x7</Text>
-                <Text style={styles.loginHeroMetricLabel}>Access</Text>
-              </View>
-              <View style={styles.loginHeroMetric}>
-                <Text style={styles.loginHeroMetricValue}>Geo</Text>
-                <Text style={styles.loginHeroMetricLabel}>Verified</Text>
-              </View>
-              <View style={styles.loginHeroMetric}>
-                <Text style={styles.loginHeroMetricValue}>Gov</Text>
-                <Text style={styles.loginHeroMetricLabel}>Aligned</Text>
-              </View>
-            </View>
-          </View>
-        </Animated.View>
+          <Text style={styles.loginCardTitle}>{t("Sign-up")}</Text>
 
-        <Animated.View
-          style={[
-            styles.loginTabContainer,
-            {
-              opacity: cardAnim,
-              transform: [
-                {
-                  translateY: cardAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [32, 0]
-                  })
-                }
-              ]
-            }
-          ]}
-        >
-          {["login", "signup"].map((item) => {
-            const active = mode === item;
-            return (
-              <Pressable
-                key={item}
-                style={[styles.loginTab, active && styles.loginTabActive]}
-                onPress={() => setMode(item)}
-              >
-                <Text
-                  style={[styles.loginTabText, active && styles.loginTabTextActive]}
-                >
-                  {item === "login" ? t("Log-In") : t("Sign-up")}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </Animated.View>
-
-        {mode === "login" ? (
-          <Animated.View
-            style={[
-              styles.loginCard,
-              styles.loginCardGlass,
-              {
-                opacity: cardAnim,
-                transform: [
-                  {
-                    translateY: cardAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [40, 0]
-                    })
-                  }
-                ]
-              }
-            ]}
-          >
-            <Text style={styles.loginCardTitle}>{t("Log-In")}</Text>
-
-            <Field label={t("Identity Type")} required>
-              <View style={styles.loginIdTypeRow}>
-                {ID_TYPE_OPTIONS.map((item) => {
-                  const active = (loginForm.idType || "CRP ID") === item;
-                  return (
-                    <Pressable
-                      key={item}
-                      style={[styles.loginIdPill, active && styles.loginIdPillActive]}
-                      onPress={() =>
-                        setLoginForm((prev) => ({
-                          ...prev,
-                          idType: item
-                        }))
-                      }
-                    >
-                      <Text
-                        style={[
-                          styles.loginIdPillText,
-                          active && styles.loginIdPillTextActive
-                        ]}
-                      >
-                        {item}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </Field>
-
-            <Field label={t("CRP ID / Master ID")} required>
-              <TextInput
-                style={styles.loginInput}
-                placeholder={t("Enter ID")}
-                value={loginForm.identity}
-                autoCapitalize="characters"
-                onChangeText={(value) =>
-                  setLoginForm((prev) => ({
-                    ...prev,
-                    identity: value
-                  }))
-                }
-              />
-            </Field>
-
-            <Field label={t("Password")} required>
-              <TextInput
-                style={styles.loginInput}
-                placeholder={t("Password")}
-                value={loginForm.password}
-                secureTextEntry
-                onChangeText={(value) =>
-                  setLoginForm((prev) => ({
-                    ...prev,
-                    password: value
-                  }))
-                }
-              />
-            </Field>
-
-            <Pressable
-              style={styles.loginButton}
-              onPress={onLogin}
-              disabled={loginSubmitting}
-            >
-              {loginSubmitting ? (
-                <ActivityIndicator color="#ffffff" />
-              ) : (
-                <Text style={styles.loginButtonText}>{t("Log-In")}</Text>
-              )}
-            </Pressable>
-          </Animated.View>
-        ) : (
-          <Animated.View
-            style={[
-              styles.loginCard,
-              styles.loginCardGlass,
-              {
-                opacity: cardAnim,
-                transform: [
-                  {
-                    translateY: cardAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [40, 0]
-                    })
-                  }
-                ]
-              }
-            ]}
-          >
-            <Text style={styles.loginCardTitle}>{t("Sign-up")}</Text>
-
-            <View style={styles.formSectionCard}>
+          {/* Personal Details */}
+          <View style={styles.formSectionCard}>
             <Text style={styles.signupSectionTitle}>{t("Personal Details")}</Text>
 
             <Field label={t("Full Name")} required>
@@ -795,9 +440,7 @@ export default function LoginScreen({
                       <Text
                         style={[
                           styles.signupValidText,
-                          isAadhaarValid(signupForm.uid)
-                            ? styles.validText
-                            : styles.invalidText
+                          isAadhaarValid(signupForm.uid) ? styles.validText : styles.invalidText
                         ]}
                       >
                         {isAadhaarValid(signupForm.uid)
@@ -826,9 +469,7 @@ export default function LoginScreen({
                       <Text
                         style={[
                           styles.signupValidText,
-                          isLokosValid(signupForm.lokosId)
-                            ? styles.validText
-                            : styles.invalidText
+                          isLokosValid(signupForm.lokosId) ? styles.validText : styles.invalidText
                         ]}
                       >
                         {isLokosValid(signupForm.lokosId)
@@ -840,9 +481,10 @@ export default function LoginScreen({
                 </Field>
               </View>
             </View>
-            </View>
+          </View>
 
-            <View style={styles.formSectionCard}>
+          {/* Location Mapping */}
+          <View style={styles.formSectionCard}>
             <Text style={styles.signupSectionTitle}>{t("Location Mapping")}</Text>
 
             {mastersLoading ? <ActivityIndicator color="#1e3a8a" /> : null}
@@ -901,9 +543,10 @@ export default function LoginScreen({
                 setOpenDropdown={setOpenDropdown}
               />
             </Field>
-            </View>
+          </View>
 
-            <View style={styles.formSectionCard}>
+          {/* Contact & Access */}
+          <View style={styles.formSectionCard}>
             <Text style={styles.signupSectionTitle}>{t("Contact & Access")}</Text>
 
             <View style={styles.signupRow}>
@@ -924,9 +567,7 @@ export default function LoginScreen({
                       <Text
                         style={[
                           styles.signupValidText,
-                          isContactValid(signupForm.contactNo)
-                            ? styles.validText
-                            : styles.invalidText
+                          isContactValid(signupForm.contactNo) ? styles.validText : styles.invalidText
                         ]}
                       >
                         {isContactValid(signupForm.contactNo)
@@ -953,9 +594,7 @@ export default function LoginScreen({
                       <Text
                         style={[
                           styles.signupValidText,
-                          isEmailValid(signupForm.email)
-                            ? styles.validText
-                            : styles.invalidText
+                          isEmailValid(signupForm.email) ? styles.validText : styles.invalidText
                         ]}
                       >
                         {isEmailValid(signupForm.email)
@@ -973,7 +612,7 @@ export default function LoginScreen({
                 selectorKey="crpType"
                 options={crpTypes}
                 selectedId={signupForm.crpTypeId}
-                onSelect={selectCrpType}
+                onSelect={(item) => updateSignup({ crpTypeId: String(item.id) })}
                 emptyText={t("No CRP types available")}
                 placeholder={t("Select CRP type")}
                 openDropdown={openDropdown}
@@ -988,7 +627,7 @@ export default function LoginScreen({
                     selectorKey="category"
                     options={categories}
                     selectedId={signupForm.categoryId}
-                    onSelect={selectCategory}
+                    onSelect={(item) => updateSignup({ categoryId: String(item.id) })}
                     emptyText={t("No categories available")}
                     placeholder={t("Select Catergories")}
                     openDropdown={openDropdown}
@@ -1013,9 +652,7 @@ export default function LoginScreen({
                       <Text
                         style={[
                           styles.signupValidText,
-                          isPasswordStrong(signupForm.password)
-                            ? styles.validText
-                            : styles.invalidText
+                          isPasswordStrong(signupForm.password) ? styles.validText : styles.invalidText
                         ]}
                       >
                         {isPasswordStrong(signupForm.password)
@@ -1055,9 +692,10 @@ export default function LoginScreen({
                 </Field>
               </View>
             </View>
-            </View>
+          </View>
 
-            <View style={styles.formSectionCard}>
+          {/* Evidence & GPS */}
+          <View style={styles.formSectionCard}>
             <Text style={styles.signupSectionTitle}>{t("Evidence & GPS")}</Text>
 
             <Field
@@ -1092,27 +730,35 @@ export default function LoginScreen({
                 )}
               </Pressable>
             </Field>
+          </View>
+
+          {signupError ? (
+            <View style={styles.processNoteBox}>
+              <Text style={styles.processNoteText}>{signupError}</Text>
             </View>
+          ) : null}
 
-            {signupError ? (
-              <View style={styles.processNoteBox}>
-                <Text style={styles.processNoteText}>{signupError}</Text>
-              </View>
-            ) : null}
+          <Pressable
+            style={styles.loginButton}
+            onPress={handleSignup}
+            disabled={signupSubmitting}
+          >
+            {signupSubmitting ? (
+              <ActivityIndicator color="#ffffff" />
+            ) : (
+              <Text style={styles.loginButtonText}>{t("Sign-up")}</Text>
+            )}
+          </Pressable>
 
-            <Pressable
-              style={styles.loginButton}
-              onPress={handleSignup}
-              disabled={signupSubmitting}
-            >
-              {signupSubmitting ? (
-                <ActivityIndicator color="#ffffff" />
-              ) : (
-                <Text style={styles.loginButtonText}>{t("Sign-up")}</Text>
-              )}
+          {/* Link back to Login */}
+          {onGoToLogin ? (
+            <Pressable onPress={onGoToLogin} style={{ marginTop: 16, alignItems: "center" }}>
+              <Text style={styles.loginTagline}>
+                {t("Already have an account?")} <Text style={styles.loginAppName}>{t("Log in")}</Text>
+              </Text>
             </Pressable>
-          </Animated.View>
-        )}
+          ) : null}
+        </Animated.View>
       </ScrollView>
     </View>
   );

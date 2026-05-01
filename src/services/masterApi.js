@@ -6,22 +6,30 @@ let authToken = "";
 
 export const API_ENDPOINTS = {
   master: {
-    districts: "/api/master/districts",
-    blocksByDistrict: (districtId) => `/api/master/block/${districtId}`,
-    gpsByBlock: (blockId) => `/api/master/gp/${blockId}`,
-    villagesByGp: (gpId) => `/api/master/village/${gpId}`,
+    districts: process.env.EXPO_PUBLIC_DISTRICTS_PATH || "/api/master/districts",
+    blocksByDistrict: (districtId) =>
+      `${process.env.EXPO_PUBLIC_BLOCKS_BY_DISTRICT_PATH || "/api/master/block"}/${districtId}`,
+    gpsByBlock: (blockId) =>
+      `${process.env.EXPO_PUBLIC_GPS_BY_BLOCK_PATH || "/api/master/gp"}/${blockId}`,
+    villagesByGp: (gpId) =>
+      `${process.env.EXPO_PUBLIC_VILLAGES_BY_GP_PATH || "/api/master/village"}/${gpId}`,
+    categories:
+      process.env.EXPO_PUBLIC_CATEGORY_PATH || "/api/category/get-all",
     crpTypes: process.env.EXPO_PUBLIC_CRP_TYPES_PATH || "/api/crptype",
-    activities: process.env.EXPO_PUBLIC_ACTIVITY_PATH || "/api/activity",
+    activities: process.env.EXPO_PUBLIC_ACTIVITY_PATH || "/activity",
     subCategoriesByActivity: (activityId) =>
-      `${process.env.EXPO_PUBLIC_SUBCATEGORY_BY_ACTIVITY_PATH || "/api/subcategory/by-activity"}/${activityId}`,
+      `${process.env.EXPO_PUBLIC_SUBCATEGORY_BY_ACTIVITY_PATH || "/subcategory/by-activity"}/${activityId}`,
     shgMembersByVillage: (villageId) =>
       `${process.env.EXPO_PUBLIC_SHG_MEMBERS_BY_VILLAGE_PATH || "/api/master/shg-member"}/${villageId}`
   },
   auth: {
-    allCrps: process.env.EXPO_PUBLIC_ALL_CRPS_PATH || "/api/auth/crp/all",
+    allCrps: process.env.EXPO_PUBLIC_ALL_CRPS_PATH || "/auth/crp/all",
     crpSignup:
       process.env.EXPO_PUBLIC_CRP_SIGNUP_PATH || "/api/auth/crp/signup",
     login: process.env.EXPO_PUBLIC_LOGIN_PATH || "/api/auth/crp/login"
+  },
+  livelihood: {
+    create: process.env.EXPO_PUBLIC_LIVELIHOOD_PATH || "/api/livelihood"
   }
 };
 
@@ -234,6 +242,16 @@ export async function fetchCrpTypes() {
   ]);
 }
 
+export async function fetchCategories() {
+  const payload = await executeRequest(API_ENDPOINTS.master.categories, "categories");
+  return mapCollection(payload, ["categoryId", "CategoryId", "id", "value"], [
+    "categoryName",
+    "CategoryName",
+    "name",
+    "label"
+  ]);
+}
+
 export async function fetchActivities() {
   const payload = await executeRequest(API_ENDPOINTS.master.activities, "activities");
 
@@ -296,7 +314,29 @@ export async function fetchAllCrps() {
         item?.crpRegistrationId ??
         item?.CrpRegistrationId ??
         item?.crpId,
-      name: item?.fullName || item?.name || item?.crpId || ""
+      crpRegistrationId:
+        item?.crpRegistrationId ??
+        item?.CrpRegistrationId ??
+        item?.id ??
+        item?.Id ??
+        "",
+      crpId: item?.crpId ?? item?.CRPId ?? item?.masterId ?? item?.MasterId ?? "",
+      fullName: item?.fullName ?? item?.FullName ?? item?.name ?? "",
+      aadhaarNo: item?.aadhaarNo ?? item?.AadhaarNo ?? item?.uid ?? "",
+      contactNo: item?.contactNo ?? item?.ContactNo ?? item?.mobileNo ?? "",
+      districtId: item?.districtId ?? item?.DistrictId ?? "",
+      districtName:
+        item?.districtName ?? item?.DistrictName ?? item?.district ?? "",
+      blockId: item?.blockId ?? item?.BlockId ?? "",
+      blockName:
+        item?.blockName ?? item?.BlockName ?? item?.block ?? "",
+      gpId: item?.gpId ?? item?.GPId ?? "",
+      gpName:
+        item?.gpName ?? item?.GPName ?? item?.gpVcName ?? "",
+      villageId: item?.villageId ?? item?.VillageId ?? "",
+      villageName:
+        item?.villageName ?? item?.VillageName ?? item?.village ?? "",
+      name: item?.fullName || item?.FullName || item?.name || item?.crpId || ""
     }))
     .filter((item) => item.id !== undefined && item.id !== null && item.id !== "");
 }
@@ -358,6 +398,13 @@ export async function loginUser(payload) {
       "Content-Type": "application/json"
     },
     body: JSON.stringify(payload)
+  });
+}
+
+export async function submitLivelihoodAssignment(formData) {
+  return executeRequest(API_ENDPOINTS.livelihood.create, "livelihood assignment", {
+    method: "POST",
+    body: formData
   });
 }
 

@@ -36,7 +36,7 @@ const webShadow = (color = "#000", offset = { width: 0, height: 0 }, opacity = 0
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: "#f2f6f9"
+    backgroundColor: "#F8FAFB"
   },
   screenPad: {
     padding: 14,
@@ -251,8 +251,9 @@ const styles = StyleSheet.create({
     elevation: 3
   },
   trlmHeaderCardCompact: {
-    paddingVertical: 14,
-    paddingHorizontal: 16
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    gap: 10
   },
   trlmHeaderTopRow: {
     flexDirection: "row",
@@ -267,9 +268,9 @@ const styles = StyleSheet.create({
     gap: 12
   },
   trlmSeal: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     borderWidth: 1.5,
     borderColor: "#a07f2f",
     backgroundColor: "#fff8df",
@@ -279,7 +280,7 @@ const styles = StyleSheet.create({
   trlmSealText: {
     color: "#7c5a10",
     fontWeight: "900",
-    fontSize: 17
+    fontSize: 13
   },
   trlmBrandCopy: {
     flex: 1,
@@ -294,7 +295,7 @@ const styles = StyleSheet.create({
   },
   trlmGovtDept: {
     color: "#1f2937",
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "800"
   },
   trlmHeaderBody: {
@@ -316,18 +317,18 @@ const styles = StyleSheet.create({
   },
   trlmHeaderTitle: {
     color: "#1b2b45",
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: "900"
   },
   trlmHeaderSubtitle: {
     color: "#5b6472",
-    fontSize: 12,
-    lineHeight: 18
+    fontSize: 11,
+    lineHeight: 14
   },
   trlmLogoutButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: "#13213a",
     alignItems: "center",
     justifyContent: "center",
@@ -461,7 +462,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#d8e4ee",
     borderRadius: 20,
-    padding: 14,
+    padding: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -473,21 +474,21 @@ const styles = StyleSheet.create({
   },
   sessionStripTitle: {
     color: "#0f172a",
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: "900"
   },
   sessionStripHint: {
     color: "#475569",
-    fontSize: 12,
-    lineHeight: 18
+    fontSize: 11,
+    lineHeight: 14
   },
   sessionStripActions: {
     alignItems: "flex-end",
-    gap: 10
+    gap: 8
   },
   sessionStripButton: {
-    minWidth: 94,
-    minHeight: 38,
+    minWidth: 88,
+    minHeight: 34,
     borderRadius: 999,
     backgroundColor: "#17365f",
     alignItems: "center",
@@ -496,13 +497,13 @@ const styles = StyleSheet.create({
   },
   sessionStripButtonText: {
     color: "#ffffff",
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "800"
   },
   sessionStatusBadge: {
-    minHeight: 30,
+    minHeight: 26,
     borderRadius: 999,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     alignItems: "center",
     justifyContent: "center"
   },
@@ -518,7 +519,7 @@ const styles = StyleSheet.create({
   },
   sessionStatusBadgeText: {
     color: "#0f172a",
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "800",
     textTransform: "uppercase",
     letterSpacing: 0.5
@@ -1626,8 +1627,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: 10,
   },
-  loginTabActive: {
-    backgroundColor: "#1e3a8a",
+loginTabActive: {
+    backgroundColor: "#00B4D8",
   },
   loginTabText: {
     fontSize: 15,
@@ -1810,30 +1811,30 @@ const styles = StyleSheet.create({
   loginIdPillTextActive: {
     color: "#ffffff",
   },
-  loginButton: {
-    backgroundColor: "#1e3a8a",
-    borderRadius: 12,
-    paddingVertical: 20,
-    paddingHorizontal: 24,
+loginButton: {
+    backgroundColor: "#0096B7",
+    borderRadius: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
     alignItems: "center",
     justifyContent: "center",
     marginTop: 16,
     marginBottom: 8,
-    shadowColor: "#1e3a8a",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.5,
-    shadowRadius: 12,
-    elevation: 8,
-    borderWidth: 2,
-    borderColor: "#3b82f6",
-    minHeight: 56,
+    shadowColor: "#0096B7",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: "#007A96",
+    minHeight: 48,
     zIndex: 100,
   },
   loginButtonText: {
     color: "#ffffff",
-    fontSize: 18,
-    fontWeight: "900",
-    letterSpacing: 1.5,
+    fontSize: 16,
+    fontWeight: "600",
+    letterSpacing: 0.5,
     textTransform: "uppercase",
   },
   loginSwitchMode: {

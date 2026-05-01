@@ -168,7 +168,8 @@ export default function AppRouter() {
     confirmPassword: "",
     contactNo: "",
     email: "",
-    crpTypes: "",
+    categoryId: "",
+    crpTypeId: "",
     shgId: "",
     pictureFile: ""
   });
@@ -423,18 +424,39 @@ export default function AppRouter() {
     return match ? match[0].toUpperCase() : "";
   };
 
+  const unwrapAuthPayload = (payload) => {
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      return payload;
+    }
+
+    if (payload.data && typeof payload.data === "object" && !Array.isArray(payload.data)) {
+      return payload.data;
+    }
+
+    if (payload.result && typeof payload.result === "object" && !Array.isArray(payload.result)) {
+      return payload.result;
+    }
+
+    if (payload.user && typeof payload.user === "object" && !Array.isArray(payload.user)) {
+      return payload.user;
+    }
+
+    return payload;
+  };
+
   const extractIdentity = (payload, fallbackIdentity) => {
+    const resolvedPayload = unwrapAuthPayload(payload);
     const message = typeof payload?.message === "string" ? payload.message : "";
 
     return (
-      payload?.crpId ||
-      payload?.CRPId ||
-      payload?.masterId ||
-      payload?.MasterId ||
-      payload?.userId ||
-      payload?.UserId ||
-      payload?.id ||
-      payload?.Id ||
+      resolvedPayload?.crpId ||
+      resolvedPayload?.CRPId ||
+      resolvedPayload?.masterId ||
+      resolvedPayload?.MasterId ||
+      resolvedPayload?.userId ||
+      resolvedPayload?.UserId ||
+      resolvedPayload?.id ||
+      resolvedPayload?.Id ||
       extractCrpId(message) ||
       fallbackIdentity
     );
@@ -442,7 +464,7 @@ export default function AppRouter() {
 
   const extractEntityId = (payload, keys = []) =>
     keys
-      .map((key) => payload?.[key])
+      .map((key) => unwrapAuthPayload(payload)?.[key])
       .find((value) => value !== undefined && value !== null && value !== "");
 
   const resolveMappedName = async (loader, parentId, targetId) => {
@@ -463,14 +485,29 @@ export default function AppRouter() {
   };
 
   const isApprovalPendingStatus = (payload) => {
+    const resolvedPayload = unwrapAuthPayload(payload);
+
+    if (resolvedPayload?.token) {
+      return false;
+    }
+
+    const rawApprovalStatus =
+      resolvedPayload?.approvalStatus ?? resolvedPayload?.ApprovalStatus;
+    if (rawApprovalStatus !== undefined && rawApprovalStatus !== null && rawApprovalStatus !== "") {
+      return Number(rawApprovalStatus) === 0;
+    }
+
     const statusText = String(
-      payload?.status || payload?.approvalStatus || payload?.message || ""
+      resolvedPayload?.status ||
+      resolvedPayload?.approvalStatus ||
+      payload?.message ||
+      ""
     ).toLowerCase();
 
     return (
       statusText.includes("pending") ||
       statusText.includes("awaiting approval") ||
-      statusText.includes("approval")
+      statusText.includes("under review")
     );
   };
 
@@ -563,6 +600,7 @@ export default function AppRouter() {
       setLoginSubmitting(true);
       dispatch(setAuthError(""));
       const response = await loginUser(payload);
+      const authPayload = unwrapAuthPayload(response);
 
       if (isApprovalPendingStatus(response)) {
         Alert.alert(
@@ -575,26 +613,39 @@ export default function AppRouter() {
       const resolvedIdentity = extractIdentity(response, identity);
       const storedProfile = await getStoredProfileByIdentity(resolvedIdentity);
       const resolvedRole =
-        response?.role || response?.userRole || response?.designation || detectRole(resolvedIdentity);
+        authPayload?.role ||
+        authPayload?.userRole ||
+        authPayload?.designation ||
+        detectRole(resolvedIdentity);
       const resolvedName =
-        response?.name || response?.fullName || response?.userName || user.name || identity;
-      const token = typeof response?.token === "string" ? response.token : "";
+        authPayload?.fullName ||
+        authPayload?.FullName ||
+        storedProfile?.name ||
+        user.name ||
+        authPayload?.name ||
+        authPayload?.userName ||
+        identity;
+      const token = typeof authPayload?.token === "string" ? authPayload.token : "";
       const resolvedBlock =
-        response?.block || response?.blockName || storedProfile?.block || user.block || "";
+        authPayload?.block ||
+        authPayload?.blockName ||
+        storedProfile?.block ||
+        user.block ||
+        "";
       const resolvedBlockId = extractEntityId(response, ["blockId", "BlockId"]);
       const resolvedGpId = extractEntityId(response, ["gpId", "GPId"]);
       const resolvedVillageId = extractEntityId(response, ["villageId", "VillageId"]);
       const fallbackGpName =
-        response?.gpVcName ||
-        response?.gpName ||
-        response?.GPName ||
+        authPayload?.gpVcName ||
+        authPayload?.gpName ||
+        authPayload?.GPName ||
         storedProfile?.gpVcName ||
         user.gpVcName ||
         "";
       const fallbackVillageName =
-        response?.villageName ||
-        response?.VillageName ||
-        response?.village ||
+        authPayload?.villageName ||
+        authPayload?.VillageName ||
+        authPayload?.village ||
         storedProfile?.villageName ||
         user.villageName ||
         "";
@@ -707,8 +758,14 @@ export default function AppRouter() {
       return;
     }
 
-    if (!signupForm.crpTypes) {
-      // Keep UI validation permissive until CRP type master API is wired.
+    if (!signupForm.categoryId) {
+      Alert.alert(t("Validation"), t("Category ID is required."));
+      return;
+    }
+
+    if (!signupForm.crpTypeId) {
+      Alert.alert(t("Validation"), t("Select CRP Type."));
+      return;
     }
 
     if (!signupForm.pictureFile) {
@@ -725,7 +782,8 @@ export default function AppRouter() {
       contactNo: String(signupForm.contactNo || ""),
       emailId: String(signupForm.email?.trim().toLowerCase() || ""),
       password: String(signupForm.password || ""),
-      crpTypeId: Number(signupForm.crpTypes) || 0,
+      categoryId: Number(signupForm.categoryId) || 0,
+      crpTypeId: Number(signupForm.crpTypeId) || 0,
       shgId: Number(signupForm.shgId) || 0,
       picturePath: String(signupForm.pictureFile || ""),
       latitude: Number(currentLocation?.latitude) || 0,
@@ -1158,11 +1216,11 @@ export default function AppRouter() {
           <View style={styles.dashboardContentShell}>
             <View style={styles.dashboardHeaderWrap}>
               <TrlmHeader
-                title={activeTab === "Profile" ? "Profile Session" : "Field Session Dashboard"}
+                title={activeTab === "Profile" ? "Profile" : "Dashboard"}
                 subtitle={checkInInfo.isCheckedIn && !checkInInfo.checkOutAt
-                  ? `Checked in on ${todayLabel}`
-                  : "Complete Check In to keep the session active."}
-                badge={checkInInfo.isCheckedIn && !checkInInfo.checkOutAt ? "Geo Enabled" : "Geo Required"}
+                  ? `${todayLabel}`
+                  : "Complete Check In to continue."}
+                badge={checkInInfo.isCheckedIn && !checkInInfo.checkOutAt ? "Checked In" : "Check In Required"}
                 onLogout={onLogout}
                 showLogout
                 compact
@@ -1170,11 +1228,11 @@ export default function AppRouter() {
 
               <View style={styles.sessionStripCard}>
                 <View style={styles.sessionStripCopy}>
-                  <Text style={styles.sessionStripTitle}>Attendance Module</Text>
+                  <Text style={styles.sessionStripTitle}>Attendance</Text>
                   <Text style={styles.sessionStripHint}>
                     {checkInInfo.isCheckedIn && !checkInInfo.checkOutAt
-                      ? `Checked In on ${todayLabel}`
-                      : "Enable geo location and Check In to continue your field session."}
+                      ? "Session active"
+                      : "Enable geo and check in."}
                   </Text>
                 </View>
                 <View style={styles.sessionStripActions}>
